@@ -4,6 +4,7 @@ import {
   pageDeBase,
   reecrire,
   resumer,
+  servirTelQuel,
   urlImage,
   type Env,
 } from '../_partage'
@@ -30,7 +31,11 @@ interface AtelierPartage {
 export const onRequestGet: PagesFunction<Env & { ASSETS: Fetcher }> = async (context) => {
   const page = await pageDeBase(context)
   const slug = String(context.params.slug ?? '')
-  if (!slug) return page
+  if (!slug) return servirTelQuel(page, 'sans-slug')
+
+  if (!context.env.VITE_SUPABASE_URL || !context.env.VITE_SUPABASE_ANON_KEY) {
+    return servirTelQuel(page, 'variables-manquantes')
+  }
 
   const atelier = await interrogerSupabase<AtelierPartage>(
     context.env,
@@ -39,7 +44,7 @@ export const onRequestGet: PagesFunction<Env & { ASSETS: Fetcher }> = async (con
       'offers(offer_images(storage_path,sort_order))',
   )
 
-  if (!atelier) return page
+  if (!atelier) return servirTelQuel(page, 'atelier-introuvable')
 
   const nomApp = context.env.VITE_APP_NAME || 'TETU WONDU'
   const lieu = atelier.neighborhood ? `${atelier.city}, ${atelier.neighborhood}` : atelier.city

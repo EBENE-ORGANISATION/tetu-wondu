@@ -5,6 +5,7 @@ import {
   prix,
   reecrire,
   resumer,
+  servirTelQuel,
   urlImage,
   type Env,
 } from '../_partage'
@@ -32,7 +33,13 @@ interface OffrePartagee {
 export const onRequestGet: PagesFunction<Env & { ASSETS: Fetcher }> = async (context) => {
   const page = await pageDeBase(context)
   const slug = String(context.params.slug ?? '')
-  if (!slug) return page
+  if (!slug) return servirTelQuel(page, 'sans-slug')
+
+  // Cause la plus fréquente d'un aperçu vide : les variables n'ont pas été
+  // renseignées côté Cloudflare, ou l'ont été après le dernier déploiement.
+  if (!context.env.VITE_SUPABASE_URL || !context.env.VITE_SUPABASE_ANON_KEY) {
+    return servirTelQuel(page, 'variables-manquantes')
+  }
 
   const offre = await interrogerSupabase<OffrePartagee>(
     context.env,
@@ -44,7 +51,7 @@ export const onRequestGet: PagesFunction<Env & { ASSETS: Fetcher }> = async (con
   // Offre inexistante, retirée, ou Supabase injoignable : on sert la page telle
   // quelle. L'application affichera « Cet objet n'est plus en ligne ». Un aperçu
   // manquant vaut mieux qu'une page en panne.
-  if (!offre) return page
+  if (!offre) return servirTelQuel(page, 'offre-introuvable')
 
   const nomApp = context.env.VITE_APP_NAME || 'TETU WONDU'
   const photo = offre.offer_images?.sort((a, b) => a.sort_order - b.sort_order)[0]

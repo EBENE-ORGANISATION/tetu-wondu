@@ -108,6 +108,7 @@ export function reecrire(reponse: Response, apercu: Apercu): Response {
   const sortie = html.transform(reponse)
   const entetes = new Headers(sortie.headers)
   entetes.set('Content-Type', 'text/html; charset=utf-8')
+  entetes.set('x-apercu', 'ok')
   // Cinq minutes de cache : assez pour absorber un partage viral, assez court
   // pour qu'une correction de prix se voie dans la journée.
   entetes.set('Cache-Control', 'public, max-age=300')
@@ -121,4 +122,20 @@ export function pageDeBase(context: {
   request: Request
 }): Promise<Response> {
   return context.env.ASSETS.fetch(new URL('/index.html', context.request.url))
+}
+
+/**
+ * Sert la page sans la modifier, mais en disant pourquoi.
+ *
+ * Sans cet en-tête, une page servie telle quelle est indiscernable d'une page
+ * que la fonction n'a jamais touchée : le symptôme est le même — un aperçu
+ * générique — alors que les causes sont opposées. On perd un temps fou à
+ * chercher du mauvais côté.
+ *
+ * Consultable avec les outils de développement du navigateur, onglet Réseau.
+ */
+export function servirTelQuel(page: Response, raison: string): Response {
+  const entetes = new Headers(page.headers)
+  entetes.set('x-apercu', raison)
+  return new Response(page.body, { status: page.status, headers: entetes })
 }
