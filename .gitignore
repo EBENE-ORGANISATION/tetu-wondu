@@ -1,0 +1,41 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Les clés du projet. Jamais dans Git, même la clé publique :
+# on ne mélange pas configuration et code.
+.env
+.env.*
+!.env.example
+
+# Éditeurs
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Journaux
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Maquette de référence : 528 Ko de bundle compilé, aucun intérêt à versionner.
+maquette.html
+
+# Documents de travail volontairement gardés hors du dépôt public.
+# Ils contiennent la stratégie terrain, les chiffres, et la revue critique qui
+# détaille les faiblesses connues du projet. Rien de tout cela n'a à être
+# lisible par un concurrent avant le lancement.
+# Ils restent sur le disque, à côté du projet — ne pas les supprimer.
+guide-miato-v2.md
+REVUE-2026-08-03.md
+PROMPT-LOVABLE.md

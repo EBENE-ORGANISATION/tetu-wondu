@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tetu-wondu",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:tel"],
+      "port": 5173
+    }
+  ]
+}

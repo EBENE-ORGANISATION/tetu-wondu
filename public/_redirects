@@ -1,0 +1,9 @@
+# Renvoi de toutes les adresses vers index.html, en gardant le code 200.
+#
+# Sans cette ligne, ouvrir directement https://…/recherche ou recharger une
+# fiche donnerait une erreur 404 : Cloudflare chercherait un fichier de ce nom,
+# qui n'existe pas — c'est React qui fabrique ces pages dans le navigateur.
+#
+# Les fonctions de functions/ passent AVANT cette règle : les aperçus WhatsApp
+# de /offre/… et /createur/… continuent de fonctionner.
+/*    /index.html   200

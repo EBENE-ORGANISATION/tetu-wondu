@@ -1,0 +1,126 @@
+@import 'tailwindcss';
+
+/* ===========================================================================
+   JETONS DE DESIGN — issus de la maquette (maquette.html)
+   ===========================================================================
+   Aucune couleur ne doit être écrite en dur dans un composant. Si la charte
+   change, elle change ici et nulle part ailleurs.
+   =========================================================================== */
+
+@theme {
+  /* Texte */
+  --color-encre: #17150f; /* texte principal, presque noir mais chaud */
+  --color-second: #57534a; /* texte secondaire */
+
+  /* Fonds */
+  --color-blanc: #ffffff;
+  --color-creme: #fbfaf7; /* fond de page */
+  --color-ligne: #e7e3da; /* séparateurs, contours */
+
+  /* Accents */
+  --color-accent: #c43b6a; /* magenta : prix, liens, fermetures */
+  --color-whatsapp: #1f9d55; /* vert : l'action principale du site */
+  --color-perso: #f4d24b; /* jaune : badge « Personnalisable » */
+  --color-commande: #c8842b; /* ambre : « Sur commande » */
+
+  /* Polices — servies depuis le site, jamais depuis Google.
+     Deux allers-retours vers un domaine tiers avant le premier texte
+     coûtent trop cher en 3G. */
+  --font-titre: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-action: 'Archivo', system-ui, -apple-system, sans-serif;
+}
+
+/* ===========================================================================
+   BASE
+   =========================================================================== */
+
+@layer base {
+  html {
+    /* Empêche iOS d'agrandir le texte en paysage. */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-creme);
+    color: var(--color-encre);
+    font-family: var(--font-titre);
+    /* Le contexte est le plein soleil : on ne lisse pas au point de délaver. */
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Cibles tactiles : 44 px minimum, y compris quand le contenu est plus petit.
+     C'est la règle qui rend l'application utilisable au pouce. */
+  button,
+  a[role='button'],
+  [data-cible] {
+    min-height: 44px;
+  }
+
+  /* Rendre le focus visible : la navigation au clavier sert aussi aux
+     lecteurs d'écran et aux téléphones avec clavier physique. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  /* Respecter le réglage système « réduire les animations ». */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ===========================================================================
+   UTILITAIRES
+   =========================================================================== */
+
+@utility scroll-x {
+  /* Rangées horizontales d'objets (accueil « Ateliers »). */
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility hachure {
+  /* Le cadre affiché tant qu'une offre n'a pas de photo. Volontairement
+     reconnaissable : mieux vaut un vide assumé qu'une image cassée. */
+  background-color: color-mix(in srgb, var(--color-ligne) 35%, white);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 6px,
+    color-mix(in srgb, var(--color-ligne) 70%, white) 6px,
+    color-mix(in srgb, var(--color-ligne) 70%, white) 12px
+  );
+}
+
+@utility shimmer {
+  /* Squelettes de chargement : la page ne doit pas « sauter » quand les
+     données arrivent. Jamais de roue qui tourne dans le vide. */
+  background: linear-gradient(
+    90deg,
+    var(--color-ligne) 25%,
+    color-mix(in srgb, var(--color-ligne) 45%, white) 50%,
+    var(--color-ligne) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

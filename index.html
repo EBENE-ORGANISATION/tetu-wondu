@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#17150F" />
+
+    <!--
+      Ces balises sont les valeurs par défaut, celles que verra le robot de
+      WhatsApp sur la page d'accueil. Pour une fiche offre ou une fiche
+      créateur, elles seront réécrites au vol par une Pages Function Cloudflare
+      (functions/offre/[slug].ts) : le robot n'exécute pas de JavaScript, donc
+      rien de ce que fait React ne peut les modifier.
+    -->
+    <title>TETU WONDU</title>
+    <meta name="description" content="Les créateurs et fabricants togolais. Découvrez, puis contactez directement sur WhatsApp." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="TETU WONDU" />
+    <meta property="og:description" content="Les créateurs et fabricants togolais. Découvrez, puis contactez directement sur WhatsApp." />
+    <meta property="og:locale" content="fr_TG" />
+    <!--
+      Ces deux balises DOIVENT rester présentes, même vides : la fonction
+      Cloudflare remplace le contenu de balises existantes, elle n'en crée pas.
+      Les supprimer ferait disparaître photo et adresse des aperçus WhatsApp.
+    -->
+    <meta property="og:url" content="" />
+    <meta property="og:image" content="" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
