@@ -149,8 +149,11 @@ généré : ne jamais l'éditer à la main, le régénérer.
       réécrits par les fonctions Cloudflare
 - [ ] **Saisir de vrais créateurs, supprimer les 8 fiches fictives** ← étape en cours
 - [ ] Déployer la fonction serveur `administrateurs` (voir `supabase/README.md`)
+- [x] Polices Space Grotesk et Archivo servies depuis le site — tranche latine
+      seule (56 Ko), `font-display: swap`, jamais depuis Google
+- [x] Fichiers compilés gardés un an dans le navigateur (`public/_headers`) —
+      la deuxième visite ne retélécharge ni code, ni styles, ni polices
 - [ ] Feuille de confirmation avant WhatsApp, états hors ligne
-- [ ] Polices Space Grotesk et Archivo servies depuis le site
 - [ ] Edge Function d'expiration des fiches (60 jours)
 - [ ] PWA, puis emballage APK
 
