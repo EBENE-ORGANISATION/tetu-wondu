@@ -110,25 +110,23 @@ Deno.serve(async (requete) => {
 
       // On tente l'invitation. Si le compte existe déjà, on ne recrée rien :
       // on lui donne simplement le rôle.
-      let cible: string | null = null
-
       const { data: invite, error: erreurInvitation } = await service.auth.admin.inviteUserByEmail(
         adresse,
         redirectTo ? { redirectTo } : undefined,
       )
 
-      if (invite?.user) {
-        cible = invite.user.id
-      } else {
+      let cible = invite?.user?.id
+
+      if (!cible) {
         const { data: comptes } = await service.auth.admin.listUsers({ page: 1, perPage: 1000 })
-        const existant = comptes?.users.find((u) => u.email?.toLowerCase() === adresse)
-        if (!existant) {
-          return reponse(
-            { erreur: erreurInvitation?.message ?? "L'invitation n'a pas pu être envoyée." },
-            400,
-          )
-        }
-        cible = existant.id
+        cible = comptes?.users.find((u) => u.email?.toLowerCase() === adresse)?.id
+      }
+
+      if (!cible) {
+        return reponse(
+          { erreur: erreurInvitation?.message ?? "L'invitation n'a pas pu être envoyée." },
+          400,
+        )
       }
 
       const { error: erreurRole } = await service
