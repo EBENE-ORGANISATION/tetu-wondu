@@ -1,0 +1,25 @@
+# Règles de cache servies par Cloudflare Pages.
+#
+# POURQUOI CE FICHIER
+#   Par défaut, Cloudflare demande au navigateur de revérifier chaque fichier
+#   à chaque visite. Sur une 3G instable, c'est un aller-retour réseau par
+#   fichier, à chaque ouverture — pour des fichiers qui ne changent jamais.
+
+# Tout ce que la compilation produit porte une empreinte de son contenu dans
+# son nom (index-CSfAJjbe.css, space-grotesk-...-BhU9QXUp.woff2). Si le contenu
+# change, le nom change. Ces fichiers peuvent donc être gardés un an sans
+# risque : « immutable » dit au navigateur de ne même pas demander.
+#
+# Concrètement : la deuxième visite ne télécharge plus ni le JavaScript, ni les
+# styles, ni les polices. Sur un forfait data togolais, ce n'est pas un détail.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# index.html, lui, ne doit JAMAIS être gardé longtemps : c'est lui qui désigne
+# les fichiers ci-dessus. Le figer reviendrait à empêcher toute mise à jour du
+# site d'atteindre les visiteurs déjà venus.
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
