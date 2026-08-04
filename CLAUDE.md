@@ -143,15 +143,37 @@ généré : ne jamais l'éditer à la main, le régénérer.
 - [x] Recherche insensible aux accents — migration `0009` exécutée le 4 août 2026
 - [x] Écran « Administrateurs » codé (Edge Function à déployer par l'admin)
 - [x] Dépôt public : `EBENE-ORGANISATION/tetu-wondu`, branche `main`
-- [x] Fonctions Cloudflare écrites pour les aperçus WhatsApp (`functions/`)
-- [ ] **Brancher Cloudflare Pages sur le dépôt** ← étape en cours
-- [ ] Polices Space Grotesk et Archivo servies depuis le site
-- [ ] Edge Function d'expiration des fiches, PWA, emballage APK
+- [x] **En ligne : https://tetu-wondu.pages.dev** (Cloudflare Pages, déploiement
+      automatique à chaque `git push`, environ une minute)
+- [x] Aperçus WhatsApp vérifiés en production — titre, prix et description
+      réécrits par les fonctions Cloudflare
+- [ ] **Saisir de vrais créateurs, supprimer les 8 fiches fictives** ← étape en cours
+- [ ] Déployer la fonction serveur `administrateurs` (voir `supabase/README.md`)
 - [ ] Feuille de confirmation avant WhatsApp, états hors ligne
 - [ ] Polices Space Grotesk et Archivo servies depuis le site
-- [ ] Pages Functions Cloudflare pour les balises Open Graph
-- [ ] Edge Function d'expiration des fiches
-- [ ] PWA, dépôt GitHub, déploiement Cloudflare Pages
+- [ ] Edge Function d'expiration des fiches (60 jours)
+- [ ] PWA, puis emballage APK
+
+## Diagnostic des aperçus WhatsApp
+
+Les fonctions posent un en-tête `x-apercu` sur chaque réponse, visible dans les
+outils de développement du navigateur, onglet Réseau :
+
+| Valeur | Signification |
+|---|---|
+| `b2:ok` | L'aperçu a été enrichi, tout va bien |
+| `b2:variables-manquantes` | Variables absentes côté Cloudflare |
+| `b2:offre-introuvable-401` | Clé Supabase refusée |
+| `b2:offre-introuvable-404` | `VITE_SUPABASE_URL` fausse (souvent un `/rest/v1/` en trop) |
+| `b2:offre-introuvable-406` | La fiche n'existe pas ou n'est pas publiée |
+
+`b2` est le marqueur de version des fonctions, dans `functions/_partage.ts`.
+L'incrémenter permet de vérifier qu'un déploiement est bien arrivé : sans lui,
+un déploiement qui ne part pas et un correctif sans effet sont indiscernables.
+
+**Piège vécu** : « Retry deployment » rejoue l'ancien déploiement avec ses
+réglages figés. Après un changement de variable, forcer une compilation neuve
+par un `git commit --allow-empty` puis `git push`.
 
 Poids mesuré au dernier build : **151 Ko de JavaScript compressé**, dont 148 Ko
 de bibliothèques. Cinq écrans ont coûté 7 Ko au total — le budget de 200 Ko
