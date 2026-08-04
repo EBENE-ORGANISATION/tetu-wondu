@@ -122,7 +122,7 @@ export function reecrire(reponse: Response, apercu: Apercu): Response {
   const sortie = html.transform(reponse)
   const entetes = new Headers(sortie.headers)
   entetes.set('Content-Type', 'text/html; charset=utf-8')
-  entetes.set('x-apercu', 'ok')
+  entetes.set('x-apercu', `${MARQUEUR}:ok`)
   // Cinq minutes de cache : assez pour absorber un partage viral, assez court
   // pour qu'une correction de prix se voie dans la journée.
   entetes.set('Cache-Control', 'public, max-age=300')
@@ -150,6 +150,16 @@ export function pageDeBase(context: {
  */
 export function servirTelQuel(page: Response, raison: string): Response {
   const entetes = new Headers(page.headers)
-  entetes.set('x-apercu', raison)
+  entetes.set('x-apercu', `${MARQUEUR}:${raison}`)
   return new Response(page.body, { status: page.status, headers: entetes })
 }
+
+/**
+ * Marqueur de version des fonctions.
+ *
+ * Sert à répondre à une question qu'on se pose vite quand un correctif semble
+ * sans effet : « ce que je vois en ligne, est-ce bien mon dernier code ? »
+ * Sans lui, un déploiement qui ne part pas et un correctif qui ne corrige rien
+ * sont indiscernables. À incrémenter quand on veut vérifier une mise en ligne.
+ */
+export const MARQUEUR = 'b2'
