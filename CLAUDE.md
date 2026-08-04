@@ -142,7 +142,11 @@ généré : ne jamais l'éditer à la main, le régénérer.
 - [x] Back-office chargé à la demande — les visiteurs ne le téléchargent pas
 - [x] Recherche insensible aux accents — migration `0009` exécutée le 4 août 2026
 - [x] Écran « Administrateurs » codé (Edge Function à déployer par l'admin)
-- [ ] **Mise en ligne : dépôt GitHub + Cloudflare Pages** ← étape en cours
+- [x] Dépôt public : `EBENE-ORGANISATION/tetu-wondu`, branche `main`
+- [x] Fonctions Cloudflare écrites pour les aperçus WhatsApp (`functions/`)
+- [ ] **Brancher Cloudflare Pages sur le dépôt** ← étape en cours
+- [ ] Polices Space Grotesk et Archivo servies depuis le site
+- [ ] Edge Function d'expiration des fiches, PWA, emballage APK
 - [ ] Feuille de confirmation avant WhatsApp, états hors ligne
 - [ ] Polices Space Grotesk et Archivo servies depuis le site
 - [ ] Pages Functions Cloudflare pour les balises Open Graph
