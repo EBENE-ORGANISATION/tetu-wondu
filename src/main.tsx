@@ -3,6 +3,21 @@ import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
+
+/**
+ * Les polices de la maquette, servies depuis notre propre site.
+ *
+ * Jamais depuis Google Fonts : cela ferait deux connexions vers un domaine
+ * tiers avant le premier texte, ce qui se paie cher en 3G — et cela enverrait
+ * l'adresse IP de chaque visiteur à Google sans raison.
+ *
+ * Ces fichiers découpent l'alphabet en tranches (latin, latin étendu,
+ * vietnamien). Le navigateur ne télécharge que celle dont il a besoin : pour
+ * du français, la tranche latine seule, et rien d'autre.
+ */
+import '@fontsource-variable/space-grotesk/wght.css'
+import '@fontsource-variable/archivo/wght.css'
+
 import './index.css'
 
 /**

@@ -23,11 +23,11 @@
   --color-perso: #f4d24b; /* jaune : badge « Personnalisable » */
   --color-commande: #c8842b; /* ambre : « Sur commande » */
 
-  /* Polices — servies depuis le site, jamais depuis Google.
-     Deux allers-retours vers un domaine tiers avant le premier texte
-     coûtent trop cher en 3G. */
-  --font-titre: 'Space Grotesk', system-ui, -apple-system, sans-serif;
-  --font-action: 'Archivo', system-ui, -apple-system, sans-serif;
+  /* Polices — servies depuis le site, jamais depuis Google (voir main.tsx).
+     La police système reste en secours : elle s'affiche pendant le
+     téléchargement, et prend le relais définitivement s'il échoue. */
+  --font-titre: 'Space Grotesk Variable', system-ui, -apple-system, sans-serif;
+  --font-action: 'Archivo Variable', system-ui, -apple-system, sans-serif;
 }
 
 /* ===========================================================================
