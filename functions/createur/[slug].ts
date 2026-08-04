@@ -37,14 +37,14 @@ export const onRequestGet: PagesFunction<Env & { ASSETS: Fetcher }> = async (con
     return servirTelQuel(page, 'variables-manquantes')
   }
 
-  const atelier = await interrogerSupabase<AtelierPartage>(
+  const { donnee: atelier, statut } = await interrogerSupabase<AtelierPartage>(
     context.env,
     `vendors?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=` +
       'display_name,tagline,bio,city,neighborhood,logo_url,cover_url,' +
       'offers(offer_images(storage_path,sort_order))',
   )
 
-  if (!atelier) return servirTelQuel(page, 'atelier-introuvable')
+  if (!atelier) return servirTelQuel(page, `atelier-introuvable-${statut}`)
 
   const nomApp = context.env.VITE_APP_NAME || 'TETU WONDU'
   const lieu = atelier.neighborhood ? `${atelier.city}, ${atelier.neighborhood}` : atelier.city

@@ -41,7 +41,7 @@ export const onRequestGet: PagesFunction<Env & { ASSETS: Fetcher }> = async (con
     return servirTelQuel(page, 'variables-manquantes')
   }
 
-  const offre = await interrogerSupabase<OffrePartagee>(
+  const { donnee: offre, statut } = await interrogerSupabase<OffrePartagee>(
     context.env,
     `offers?slug=eq.${encodeURIComponent(slug)}&status=eq.published&select=` +
       'title,description,price_mode,price_cfa,is_made_to_order,lead_time_days,' +
@@ -51,7 +51,7 @@ export const onRequestGet: PagesFunction<Env & { ASSETS: Fetcher }> = async (con
   // Offre inexistante, retirée, ou Supabase injoignable : on sert la page telle
   // quelle. L'application affichera « Cet objet n'est plus en ligne ». Un aperçu
   // manquant vaut mieux qu'une page en panne.
-  if (!offre) return servirTelQuel(page, 'offre-introuvable')
+  if (!offre) return servirTelQuel(page, `offre-introuvable-${statut}`)
 
   const nomApp = context.env.VITE_APP_NAME || 'TETU WONDU'
   const photo = offre.offer_images?.sort((a, b) => a.sort_order - b.sort_order)[0]

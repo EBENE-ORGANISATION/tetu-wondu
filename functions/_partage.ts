@@ -49,19 +49,33 @@ export function prix(mode: string, cfa: number | null): string {
   return mode === 'from' ? `À partir de ${montant}` : montant
 }
 
+/**
+ * Interroge Supabase en rapportant ce qui s'est passé.
+ *
+ * Le code HTTP est remonté volontairement : un aperçu vide peut venir d'une
+ * clé refusée (401), d'une adresse fausse (404) ou d'une fiche qui n'existe
+ * pas (406). Trois causes, trois corrections différentes, et exactement le
+ * même symptôme à l'écran. Sans le code, on cherche à l'aveugle.
+ */
 export async function interrogerSupabase<T>(
   env: Env,
   chemin: string,
-): Promise<T | null> {
-  const reponse = await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/${chemin}`, {
-    headers: {
-      apikey: env.VITE_SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${env.VITE_SUPABASE_ANON_KEY}`,
-      Accept: 'application/vnd.pgrst.object+json',
-    },
-  })
-  if (!reponse.ok) return null
-  return (await reponse.json()) as T
+): Promise<{ donnee: T | null; statut: number | string }> {
+  try {
+    const reponse = await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/${chemin}`, {
+      headers: {
+        apikey: env.VITE_SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${env.VITE_SUPABASE_ANON_KEY}`,
+        Accept: 'application/vnd.pgrst.object+json',
+      },
+    })
+    if (!reponse.ok) return { donnee: null, statut: reponse.status }
+    return { donnee: (await reponse.json()) as T, statut: 200 }
+  } catch {
+    // Réseau injoignable depuis Cloudflare : cas rare, mais qu'on ne veut pas
+    // confondre avec une fiche absente.
+    return { donnee: null, statut: 'reseau' }
+  }
 }
 
 export function urlImage(env: Env, chemin: string): string {
