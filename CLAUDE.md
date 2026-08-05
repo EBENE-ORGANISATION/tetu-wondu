@@ -148,7 +148,8 @@ généré : ne jamais l'éditer à la main, le régénérer.
 - [x] Aperçus WhatsApp vérifiés en production — titre, prix et description
       réécrits par les fonctions Cloudflare
 - [ ] **Saisir de vrais créateurs, supprimer les 8 fiches fictives** ← étape en cours
-- [ ] Déployer la fonction serveur `administrateurs` (voir `supabase/README.md`)
+- [x] Fonction serveur `administrateurs` déployée et vérifiée — un appel avec
+      la seule clé publique est refusé (`401`)
 - [x] Polices Space Grotesk et Archivo servies depuis le site — tranche latine
       seule (56 Ko), `font-display: swap`, jamais depuis Google
 - [x] Fichiers compilés gardés un an dans le navigateur (`public/_headers`) —
