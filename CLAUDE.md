@@ -64,6 +64,13 @@ try/catch silencieux, appel non bloquant.
 - Les rôles vivent dans `user_roles`, **jamais** dans une colonne de `profiles`
   modifiable par son propriétaire. Sinon un utilisateur peut se promouvoir admin.
 - `has_role()` est en `SECURITY DEFINER` pour éviter la récursion RLS.
+- **Toute fonction `SECURITY DEFINER` doit voir ses droits d'appel retirés à
+  `public`, pas seulement à `anon` et `authenticated`.** PostgreSQL accorde
+  l'exécution au groupe `public` par défaut, et ce groupe englobe tout le
+  monde. `revoke ... from anon` seul ne ferme rien. L'erreur a été commise en
+  `0010` et corrigée en `0011` : `expirer_fiches(0)` était appelable par
+  n'importe qui et aurait dépublié le catalogue entier. Écrire systématiquement
+  `revoke all on function … from public;` **en premier**.
 - Aucune écriture sur `user_roles` depuis le client. Admins uniquement.
 - La clé `service_role` ne doit jamais apparaître dans le code ni dans Git.
 - `events` : écriture ouverte à tous (y compris anonymes), lecture admins seuls.
@@ -158,8 +165,9 @@ généré : ne jamais l'éditer à la main, le régénérer.
       le clic n'est compté qu'à l'ouverture réelle de WhatsApp
 - [x] États hors ligne : catalogue conservé 24 h sur l'appareil, bandeau ambre,
       cadre « image en attente », contact désactivé sans réseau
-- [x] Expiration des fiches codée (`supabase/functions/expiration-fiches/`) —
-      à déployer et à planifier, mode simulation disponible dans le back-office
+- [x] Expiration des fiches : faite et planifiée par la base (`pg_cron`, tous
+      les lundis 6 h), migrations `0010` et `0011`. Droits d'appel réservés à
+      `service_role`, vérifié par appel réel avec la clé publique.
 - [ ] PWA, puis emballage APK
 
 ## Diagnostic des aperçus WhatsApp
