@@ -154,7 +154,10 @@ généré : ne jamais l'éditer à la main, le régénérer.
       seule (56 Ko), `font-display: swap`, jamais depuis Google
 - [x] Fichiers compilés gardés un an dans le navigateur (`public/_headers`) —
       la deuxième visite ne retélécharge ni code, ni styles, ni polices
-- [ ] Feuille de confirmation avant WhatsApp, états hors ligne
+- [x] Feuille de confirmation avant WhatsApp — message visible et modifiable,
+      le clic n'est compté qu'à l'ouverture réelle de WhatsApp
+- [x] États hors ligne : catalogue conservé 24 h sur l'appareil, bandeau ambre,
+      cadre « image en attente », contact désactivé sans réseau
 - [ ] Edge Function d'expiration des fiches (60 jours)
 - [ ] PWA, puis emballage APK
 
