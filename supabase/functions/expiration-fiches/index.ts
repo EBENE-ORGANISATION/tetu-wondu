@@ -30,8 +30,14 @@ const URL_SUPABASE = Deno.env.get('SUPABASE_URL')!
 const CLE_ANON = Deno.env.get('SUPABASE_ANON_KEY')!
 const CLE_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-/** Au-delà de ce délai sans confirmation, une fiche n'est plus digne de foi. */
-const JOURS = 60
+/**
+ * Le seuil de 60 jours n'est PAS écrit ici.
+ *
+ * Il vit dans la base, en valeur par défaut des fonctions fiches_perimees()
+ * et expirer_fiches() — voir migrations/0010. La tâche hebdomadaire les
+ * appelle directement ; cette fonction serveur aussi. Une seule définition,
+ * donc aucun risque que les deux divergent le jour où l'on change le délai.
+ */
 
 const enTetes = {
   'Access-Control-Allow-Origin': '*',
@@ -44,12 +50,14 @@ function reponse(corps: unknown, statut = 200) {
 }
 
 interface OffrePerimee {
-  id: string
+  offer_id: string
   slug: string
   title: string
-  last_confirmed_at: string
   vendor_display_name: string | null
-  vendors: { display_name: string; contact_name: string | null; whatsapp_number: string } | null
+  vendor_id: string
+  contact_name: string | null
+  whatsapp_number: string
+  jours_ecoules: number
 }
 
 Deno.serve(async (requete) => {
@@ -94,26 +102,17 @@ Deno.serve(async (requete) => {
     const corps = await requete.json().catch(() => ({}))
     const simulation = corps?.simulation === true
 
-    const limite = new Date(Date.now() - JOURS * 86_400_000).toISOString()
-
-    const { data, error } = await service
-      .from('offers')
-      .select(
-        'id, slug, title, last_confirmed_at, vendor_display_name, ' +
-          'vendors(display_name, contact_name, whatsapp_number)',
-      )
-      .eq('status', 'published')
-      .lt('last_confirmed_at', limite)
-      .order('last_confirmed_at')
-
+    // La liste vient de la base, avec son propre seuil. Cette fonction ne
+    // décide de rien : elle rapporte et déclenche.
+    const { data, error } = await service.rpc('fiches_perimees')
     if (error) throw error
-    const perimees = (data ?? []) as unknown as OffrePerimee[]
+    const perimees = (data ?? []) as OffrePerimee[]
 
     const detail = perimees.map((o) => ({
       slug: o.slug,
       titre: o.title,
       createur: o.vendor_display_name,
-      jours: Math.floor((Date.now() - new Date(o.last_confirmed_at).getTime()) / 86_400_000),
+      jours: o.jours_ecoules,
     }))
 
     // Regroupé par créateur : c'est ainsi qu'on rappelle les gens, pas fiche
@@ -124,35 +123,30 @@ Deno.serve(async (requete) => {
     >()
 
     for (const o of perimees) {
-      const v = o.vendors
-      if (!v) continue
-      const cle = v.whatsapp_number
+      const cle = o.whatsapp_number
       const existant = parCreateur.get(cle) ?? {
-        nom: v.display_name,
-        contact: v.contact_name,
-        whatsapp: v.whatsapp_number,
+        nom: o.vendor_display_name ?? '(créateur inconnu)',
+        contact: o.contact_name,
+        whatsapp: o.whatsapp_number,
         offres: [],
       }
       existant.offres.push(o.title)
       parCreateur.set(cle, existant)
     }
 
+    let depubliees = 0
     if (!simulation && perimees.length > 0) {
-      const { error: erreurMaj } = await service
-        .from('offers')
-        .update({ status: 'draft' })
-        .in(
-          'id',
-          perimees.map((o) => o.id),
-        )
+      // La dépublication elle-même est faite par la base, exactement comme
+      // lors du passage hebdomadaire. Même code, mêmes règles.
+      const { data: nombre, error: erreurMaj } = await service.rpc('expirer_fiches')
       if (erreurMaj) throw erreurMaj
+      depubliees = (nombre as number) ?? 0
     }
 
     return reponse({
       simulation,
-      seuil_jours: JOURS,
       concernees: perimees.length,
-      depubliees: simulation ? 0 : perimees.length,
+      depubliees,
       offres: detail,
       createurs_a_rappeler: [...parCreateur.values()],
       message: simulation

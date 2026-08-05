@@ -3,7 +3,6 @@ import { supabase } from '@/lib/supabase'
 
 export interface RapportExpiration {
   simulation: boolean
-  seuil_jours: number
   concernees: number
   depubliees: number
   message: string
