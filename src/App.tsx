@@ -5,6 +5,7 @@ import Recherche from '@/pages/Recherche'
 import FicheOffre from '@/pages/FicheOffre'
 import FicheCreateur from '@/pages/FicheCreateur'
 import Introuvable from '@/pages/Introuvable'
+import { BandeauHorsLigne } from '@/components/BandeauHorsLigne'
 
 /**
  * Le back-office est chargé à la demande, pas au démarrage.
@@ -36,6 +37,7 @@ export default function App() {
   return (
     <>
       <RemonterEnHaut />
+      <BandeauHorsLigne />
       <Routes>
         <Route path="/" element={<Accueil />} />
         <Route path="/recherche" element={<Recherche />} />

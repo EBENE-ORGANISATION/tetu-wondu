@@ -6,7 +6,7 @@ import { BarreContact } from '@/components/BarreContact'
 import { Monogramme } from '@/components/Monogramme'
 import { ChipDispo } from '@/components/Chips'
 import { metier, prixCourt } from '@/lib/format'
-import { urlImage } from '@/lib/images'
+import { Photo } from '@/components/Photo'
 import { FeuilleWhatsApp } from '@/components/FeuilleWhatsApp'
 import { messageAtelier } from '@/lib/whatsapp'
 import { trackEvent } from '@/lib/analytics'
@@ -98,17 +98,11 @@ export default function FicheCreateur() {
                 className={o.is_available ? '' : 'opacity-45'}
               >
                 <div className="aspect-square overflow-hidden rounded-xl">
-                  {o.offer_images?.[0] ? (
-                    <img
-                      src={urlImage(o.offer_images[0].storage_path)}
-                      alt={o.offer_images[0].alt_text ?? o.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <div className="hachure size-full" />
-                  )}
+                  <Photo
+                    chemin={o.offer_images?.[0]?.storage_path}
+                    alt={o.offer_images?.[0]?.alt_text ?? o.title}
+                    className="size-full"
+                  />
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm leading-snug font-medium text-encre">
                   {o.title}

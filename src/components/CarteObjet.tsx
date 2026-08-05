@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { prixCourt } from '@/lib/format'
-import { urlImage } from '@/lib/images'
+import { Photo } from '@/components/Photo'
 import { ChipDispo } from '@/components/Chips'
 import type { OfferCard } from '@/types/database'
 
@@ -17,17 +17,11 @@ export function CarteObjet({ offre }: { offre: OfferCard }) {
   return (
     <Link to={`/offre/${offre.slug}`} className={offre.is_available ? '' : 'opacity-45'}>
       <div className="relative aspect-square overflow-hidden rounded-xl">
-        {photo ? (
-          <img
-            src={urlImage(photo.storage_path)}
-            alt={photo.alt_text ?? offre.title}
-            loading="lazy"
-            decoding="async"
-            className="size-full object-cover"
-          />
-        ) : (
-          <div className="hachure size-full" />
-        )}
+        <Photo
+          chemin={photo?.storage_path}
+          alt={photo?.alt_text ?? offre.title}
+          className="size-full"
+        />
         {offre.is_customizable && offre.is_available && (
           <span className="absolute top-1.5 left-1.5 rounded-md bg-perso px-1.5 py-0.5 font-action text-[10px] font-bold text-encre">
             Perso.

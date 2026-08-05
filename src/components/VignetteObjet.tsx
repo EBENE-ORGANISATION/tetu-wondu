@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { prixCourt } from '@/lib/format'
-import { urlImage } from '@/lib/images'
+import { Photo } from '@/components/Photo'
 import type { OfferCard } from '@/types/database'
 
 /**
@@ -20,17 +20,11 @@ export function VignetteObjet({ offre }: { offre: OfferCard }) {
       className={`block w-36 shrink-0 snap-start ${indisponible ? 'opacity-45' : ''}`}
     >
       <div className="relative aspect-square overflow-hidden rounded-xl">
-        {photo ? (
-          <img
-            src={urlImage(photo.storage_path)}
-            alt={photo.alt_text ?? offre.title}
-            loading="lazy"
-            decoding="async"
-            className="size-full object-cover"
-          />
-        ) : (
-          <div className="hachure size-full" />
-        )}
+        <Photo
+          chemin={photo?.storage_path}
+          alt={photo?.alt_text ?? offre.title}
+          className="size-full"
+        />
 
         {offre.is_customizable && !indisponible && (
           <span className="absolute top-1.5 left-1.5 rounded-md bg-perso px-1.5 py-0.5 font-action text-[10px] font-bold text-encre">

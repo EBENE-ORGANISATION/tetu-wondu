@@ -1,6 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient } from '@tanstack/react-query'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 
@@ -32,19 +34,51 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000,
-      gcTime: 30 * 60 * 1000,
+      gcTime: 24 * 60 * 60 * 1000,
       refetchOnWindowFocus: false,
       retry: 1,
     },
   },
 })
 
+/**
+ * Le catalogue est conservé sur le téléphone, pas seulement en mémoire.
+ *
+ * Sans cela, « hors ligne » ne voudrait pas dire grand-chose : il suffirait de
+ * fermer l'onglet pour tout perdre, et le visiteur retrouverait une page vide
+ * au prochain lancement. Là, il retrouve ce qu'il avait déjà vu — avec un
+ * bandeau qui le prévient que ce n'est peut-être plus à jour.
+ *
+ * Durée de vie : 24 heures. Au-delà, un catalogue périmé vaut moins qu'une
+ * page vide — on ne veut pas qu'un client contacte un créateur pour un objet
+ * retiré depuis une semaine.
+ */
+const stockage = createSyncStoragePersister({
+  storage: window.localStorage,
+  key: 'tw-cache',
+  // Écrire à chaque frappe de recherche userait le stockage sur un téléphone
+  // d'entrée de gamme. Une seconde de répit suffit.
+  throttleTime: 1000,
+})
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: stockage,
+        maxAge: 24 * 60 * 60 * 1000,
+        dehydrateOptions: {
+          // On n'enregistre que ce qui a réussi. Conserver une erreur réseau
+          // la ferait réapparaître au prochain lancement, alors que le réseau
+          // est peut-être revenu entre-temps.
+          shouldDehydrateQuery: (q) => q.state.status === 'success',
+        },
+      }}
+    >
       <BrowserRouter>
         <App />
       </BrowserRouter>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   </StrictMode>,
 )

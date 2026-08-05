@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Monogramme } from '@/components/Monogramme'
+import { useEnLigne } from '@/hooks/useEnLigne'
 import { lienWhatsApp } from '@/lib/whatsapp'
 
 /**
@@ -37,6 +38,7 @@ export function FeuilleWhatsApp({
   const [message, setMessage] = useState(messageInitial)
   const [modifiable, setModifiable] = useState(false)
   const zone = useRef<HTMLTextAreaElement>(null)
+  const enLigne = useEnLigne()
 
   // Le clavier n'apparaît qu'à la demande : sur un écran de 5 pouces, il
   // recouvrirait le récapitulatif et le bouton avant même qu'on les ait lus.
@@ -53,6 +55,9 @@ export function FeuilleWhatsApp({
   }, [onFermer])
 
   const vide = message.trim().length === 0
+  // Sans réseau, le lien wa.me ne peut pas s'ouvrir. Plutôt qu'un bouton qui
+  // ne fait rien, on l'explique — et on rassure : le texte n'est pas perdu.
+  const bloque = vide || !enLigne
 
   return (
     <div
@@ -126,21 +131,28 @@ export function FeuilleWhatsApp({
         </div>
 
         <div className="mt-4 px-5">
+          {!enLigne && (
+            <p className="mb-3 rounded-xl border border-commande/40 bg-commande/10 p-3 text-sm text-encre">
+              <span className="font-bold">Pas de connexion.</span> Votre message est prêt et reste
+              affiché — réessayez dès que le réseau revient.
+            </p>
+          )}
+
           <a
             href={lienWhatsApp(destinataire.whatsapp_number, message)}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => {
-              if (vide) {
+              if (bloque) {
                 e.preventDefault()
                 return
               }
               onOuvrir()
               onFermer()
             }}
-            aria-disabled={vide}
+            aria-disabled={bloque}
             className={`flex items-center justify-center gap-2 rounded-full bg-whatsapp px-5 py-3.5 font-action font-bold text-blanc ${
-              vide ? 'pointer-events-none opacity-40' : ''
+              bloque ? 'pointer-events-none opacity-40' : ''
             }`}
           >
             <svg viewBox="0 0 24 24" className="size-5 shrink-0 fill-current" aria-hidden="true">

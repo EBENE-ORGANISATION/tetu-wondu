@@ -7,7 +7,7 @@ import { ChipDispo, ChipPerso, ChipInfo } from '@/components/Chips'
 import { Monogramme } from '@/components/Monogramme'
 import { VignetteObjet } from '@/components/VignetteObjet'
 import { montant, metier, prix as prixComplet } from '@/lib/format'
-import { urlImage } from '@/lib/images'
+import { Photo } from '@/components/Photo'
 import { FeuilleWhatsApp } from '@/components/FeuilleWhatsApp'
 import { messageOffre } from '@/lib/whatsapp'
 import { trackEvent } from '@/lib/analytics'
@@ -43,17 +43,13 @@ export default function FicheOffre() {
       {/* Galerie — une seule photo pour l'instant, le carrousel viendra quand
           les fiches en auront plusieurs. */}
       <div className="relative mx-4 aspect-[4/3] overflow-hidden rounded-2xl">
-        {photo ? (
-          <img
-            src={urlImage(photo.storage_path)}
-            alt={photo.alt_text ?? offre.title}
-            className="size-full object-cover"
-          />
-        ) : (
-          <div className="hachure flex size-full items-center justify-center">
-            <span className="font-action text-xs text-second">photo en attente</span>
-          </div>
-        )}
+        <Photo
+          chemin={photo?.storage_path}
+          alt={photo?.alt_text ?? offre.title}
+          mention
+          eager
+          className="size-full"
+        />
         {offre.is_customizable && (
           <span className="absolute top-3 left-3 rounded-full bg-perso px-3 py-1 font-action text-xs font-bold text-encre">
             Personnalisable
