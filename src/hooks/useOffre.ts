@@ -26,6 +26,7 @@ export type OffreComplete = Pick<
     | 'slug'
     | 'display_name'
     | 'vendor_type'
+    | 'contact_name'
     | 'tagline'
     | 'city'
     | 'neighborhood'
@@ -59,7 +60,7 @@ export function useOffre(slug: string | undefined) {
           offer_images ( storage_path, alt_text, sort_order ),
           categories ( name, slug ),
           vendors!inner (
-            id, slug, display_name, vendor_type, tagline, city, neighborhood,
+            id, slug, display_name, vendor_type, contact_name, tagline, city, neighborhood,
             logo_url, is_verified, whatsapp_number, phone, instagram_handle, accepts_custom
           )
         `,

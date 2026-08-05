@@ -22,7 +22,7 @@ export function useAteliers() {
         .from('vendors')
         .select(
           `
-          id, slug, display_name, vendor_type, tagline, city, neighborhood,
+          id, slug, display_name, vendor_type, contact_name, tagline, city, neighborhood,
           logo_url, is_verified, whatsapp_number,
           offers!inner (
             id, slug, title, price_mode, price_cfa, unit,

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAteliers } from '@/hooks/useAteliers'
 import { useCategories } from '@/hooks/useCategories'
@@ -5,7 +6,8 @@ import { Monogramme } from '@/components/Monogramme'
 import { VignetteObjet } from '@/components/VignetteObjet'
 import { SqueletteAccueil } from '@/components/SqueletteAccueil'
 import { metier } from '@/lib/format'
-import { lienAtelier } from '@/lib/whatsapp'
+import { FeuilleWhatsApp } from '@/components/FeuilleWhatsApp'
+import { messageAtelier } from '@/lib/whatsapp'
 import { trackEvent } from '@/lib/analytics'
 import type { AtelierAvecOffres } from '@/types/database'
 
@@ -97,14 +99,7 @@ function Categories() {
 
 function SectionAtelier({ atelier }: { atelier: AtelierAvecOffres }) {
   const lieu = atelier.neighborhood ? `${atelier.city}, ${atelier.neighborhood}` : atelier.city
-
-  function contacter() {
-    // Non bloquant : on n'attend pas la confirmation avant d'ouvrir WhatsApp.
-    trackEvent('whatsapp_click', {
-      vendor_id: atelier.id,
-      metadata: { depuis: 'accueil' },
-    })
-  }
+  const [feuilleOuverte, setFeuilleOuverte] = useState(false)
 
   return (
     <section>
@@ -126,19 +121,12 @@ function SectionAtelier({ atelier }: { atelier: AtelierAvecOffres }) {
           </Link>
         </div>
 
-        <a
-          href={lienAtelier({
-            whatsapp_number: atelier.whatsapp_number,
-            nom: atelier.display_name,
-            slug: atelier.slug,
-          })}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={contacter}
+        <button
+          onClick={() => setFeuilleOuverte(true)}
           className="flex shrink-0 items-center rounded-full border border-accent px-4 font-action text-sm font-semibold text-accent"
         >
           Contacter
-        </a>
+        </button>
       </div>
 
       <div className="scroll-x mt-3 flex gap-3 px-5">
@@ -146,6 +134,28 @@ function SectionAtelier({ atelier }: { atelier: AtelierAvecOffres }) {
           <VignetteObjet key={offre.id} offre={offre} />
         ))}
       </div>
+
+      {feuilleOuverte && (
+        <FeuilleWhatsApp
+          destinataire={{
+            nom: atelier.display_name,
+            whatsapp_number: atelier.whatsapp_number,
+            logo_url: atelier.logo_url,
+          }}
+          messageInitial={messageAtelier({
+            nom: atelier.display_name,
+            slug: atelier.slug,
+            contact_name: atelier.contact_name,
+          })}
+          onOuvrir={() =>
+            trackEvent('whatsapp_click', {
+              vendor_id: atelier.id,
+              metadata: { depuis: 'accueil' },
+            })
+          }
+          onFermer={() => setFeuilleOuverte(false)}
+        />
+      )}
     </section>
   )
 }

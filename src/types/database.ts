@@ -112,6 +112,7 @@ export type AtelierAvecOffres = Pick<
   | 'slug'
   | 'display_name'
   | 'vendor_type'
+  | 'contact_name'
   | 'tagline'
   | 'city'
   | 'neighborhood'

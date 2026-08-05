@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useOffre, useAutresOffres } from '@/hooks/useOffre'
 import { EnteteFiche } from '@/components/EnteteFiche'
@@ -6,9 +6,10 @@ import { BarreContact } from '@/components/BarreContact'
 import { ChipDispo, ChipPerso, ChipInfo } from '@/components/Chips'
 import { Monogramme } from '@/components/Monogramme'
 import { VignetteObjet } from '@/components/VignetteObjet'
-import { montant, metier } from '@/lib/format'
+import { montant, metier, prix as prixComplet } from '@/lib/format'
 import { urlImage } from '@/lib/images'
-import { lienOffre } from '@/lib/whatsapp'
+import { FeuilleWhatsApp } from '@/components/FeuilleWhatsApp'
+import { messageOffre } from '@/lib/whatsapp'
 import { trackEvent } from '@/lib/analytics'
 import Introuvable from '@/pages/Introuvable'
 
@@ -16,6 +17,7 @@ export default function FicheOffre() {
   const { slug } = useParams<{ slug: string }>()
   const { data: offre, isPending, isError, refetch } = useOffre(slug)
   const { data: autres } = useAutresOffres(offre?.vendors.id, slug)
+  const [feuilleOuverte, setFeuilleOuverte] = useState(false)
 
   // Une vue par ouverture de fiche. La base refuse les doublons d'une même
   // session dans la même heure : inutile de s'en préoccuper ici.
@@ -141,26 +143,43 @@ export default function FicheOffre() {
       </div>
 
       <BarreContact
-        lien={lienOffre({
-          whatsapp_number: v.whatsapp_number,
-          titre: offre.title,
-          price_mode: offre.price_mode,
-          price_cfa: offre.price_cfa,
-          slug: offre.slug,
-        })}
         libelle={surDevis ? 'Demander un devis' : 'Commander sur WhatsApp'}
         rappel={{
           legende: legendePrix,
           valeur: surDevis ? 'Sur devis' : montant(offre.price_cfa!),
         }}
-        onContact={() =>
-          trackEvent('whatsapp_click', {
-            offer_id: offre.id,
-            vendor_id: v.id,
-            metadata: { depuis: 'fiche_offre', price_mode: offre.price_mode },
-          })
-        }
+        onAppuyer={() => setFeuilleOuverte(true)}
       />
+
+      {feuilleOuverte && (
+        <FeuilleWhatsApp
+          destinataire={{
+            nom: v.display_name,
+            whatsapp_number: v.whatsapp_number,
+            logo_url: v.logo_url,
+          }}
+          objet={{
+            titre: offre.title,
+            prixAffiche: prixComplet(offre.price_mode, offre.price_cfa),
+          }}
+          messageInitial={messageOffre({
+            titre: offre.title,
+            price_mode: offre.price_mode,
+            price_cfa: offre.price_cfa,
+            slug: offre.slug,
+            contact_name: v.contact_name,
+            is_customizable: offre.is_customizable,
+          })}
+          onOuvrir={() =>
+            trackEvent('whatsapp_click', {
+              offer_id: offre.id,
+              vendor_id: v.id,
+              metadata: { depuis: 'fiche_offre', price_mode: offre.price_mode },
+            })
+          }
+          onFermer={() => setFeuilleOuverte(false)}
+        />
+      )}
     </main>
   )
 }

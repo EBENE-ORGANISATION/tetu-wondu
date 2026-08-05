@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAtelier } from '@/hooks/useAtelier'
 import { EnteteFiche } from '@/components/EnteteFiche'
@@ -7,13 +7,15 @@ import { Monogramme } from '@/components/Monogramme'
 import { ChipDispo } from '@/components/Chips'
 import { metier, prixCourt } from '@/lib/format'
 import { urlImage } from '@/lib/images'
-import { lienAtelier } from '@/lib/whatsapp'
+import { FeuilleWhatsApp } from '@/components/FeuilleWhatsApp'
+import { messageAtelier } from '@/lib/whatsapp'
 import { trackEvent } from '@/lib/analytics'
 import Introuvable from '@/pages/Introuvable'
 
 export default function FicheCreateur() {
   const { slug } = useParams<{ slug: string }>()
   const { data: atelier, isPending, isError, refetch } = useAtelier(slug)
+  const [feuilleOuverte, setFeuilleOuverte] = useState(false)
 
   useEffect(() => {
     if (atelier) trackEvent('vendor_view', { vendor_id: atelier.id })
@@ -124,19 +126,31 @@ export default function FicheCreateur() {
       </div>
 
       <BarreContact
-        lien={lienAtelier({
-          whatsapp_number: atelier.whatsapp_number,
-          nom: atelier.display_name,
-          slug: atelier.slug,
-        })}
         libelle={`Contacter ${atelier.contact_name ?? atelier.display_name}`}
-        onContact={() =>
-          trackEvent('whatsapp_click', {
-            vendor_id: atelier.id,
-            metadata: { depuis: 'fiche_createur' },
-          })
-        }
+        onAppuyer={() => setFeuilleOuverte(true)}
       />
+
+      {feuilleOuverte && (
+        <FeuilleWhatsApp
+          destinataire={{
+            nom: atelier.display_name,
+            whatsapp_number: atelier.whatsapp_number,
+            logo_url: atelier.logo_url,
+          }}
+          messageInitial={messageAtelier({
+            nom: atelier.display_name,
+            slug: atelier.slug,
+            contact_name: atelier.contact_name,
+          })}
+          onOuvrir={() =>
+            trackEvent('whatsapp_click', {
+              vendor_id: atelier.id,
+              metadata: { depuis: 'fiche_createur' },
+            })
+          }
+          onFermer={() => setFeuilleOuverte(false)}
+        />
+      )}
     </main>
   )
 }
