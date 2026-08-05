@@ -13,8 +13,6 @@
 --
 -- =============================================================================
 
-
-
 -- >>>>>>>>>>>>>>>>>>>>  0002_corrections_bloc1.sql  <<<<<<<<<<<<<<<<<<<<
 
 -- =============================================================================
@@ -723,4 +721,198 @@ create index offers_search_idx on public.offers using gin (search_vector);
 --  select count(*) from public.offers where search_vector @@ plainto_tsquery('french', public.f_unaccent('Kpalimé'));
 --  select count(*) from public.offers where search_vector @@ plainto_tsquery('french', public.f_unaccent('karite'));
 --  select count(*) from public.offers where search_vector @@ plainto_tsquery('french', public.f_unaccent('flok'));
+-- =============================================================================
+
+
+-- >>>>>>>>>>>>>>>>>>>>  0010_expiration_planifiee.sql  <<<<<<<<<<<<<<<<<<<<
+
+-- =============================================================================
+-- 0010 — Expiration des fiches, faite et planifiée par la base
+-- =============================================================================
+--
+-- POURQUOI DANS LA BASE PLUTÔT QUE DANS UNE FONCTION SERVEUR
+--   La planification d'une fonction serveur oblige à ranger une clé d'accès
+--   quelque part pour que la tâche puisse s'authentifier. Ici, rien à ranger :
+--   la base se déclenche elle-même et modifie ses propres lignes.
+--
+--   La fonction serveur « expiration-fiches » reste utile — elle produit le
+--   rapport et la liste des créateurs à rappeler pour le back-office — mais
+--   elle ne décide plus du seuil ni de la dépublication : elle appelle ce qui
+--   suit. Le seuil de 60 jours n'est donc écrit qu'à un seul endroit.
+--
+-- CE QUI EST FAIT AUX FICHES PÉRIMÉES
+--   Elles repassent en brouillon. Rien n'est supprimé, tout est republiable
+--   d'un clic depuis le back-office après vérification auprès du créateur.
+-- =============================================================================
+
+-- --- La liste, sans rien modifier -------------------------------------------
+
+create or replace function public.fiches_perimees(jours integer default 60)
+returns table (
+  offer_id            uuid,
+  slug                text,
+  title               text,
+  vendor_display_name text,
+  vendor_id           uuid,
+  contact_name        text,
+  whatsapp_number     text,
+  jours_ecoules       integer
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    o.id, o.slug, o.title, o.vendor_display_name,
+    v.id, v.contact_name, v.whatsapp_number,
+    extract(day from now() - o.last_confirmed_at)::integer
+  from public.offers o
+  join public.vendors v on v.id = o.vendor_id
+  where o.status = 'published'
+    and o.last_confirmed_at < now() - make_interval(days => greatest(jours, 1))
+  order by o.last_confirmed_at;
+$$;
+
+-- SECURITY DEFINER ci-dessus : la fonction doit voir toutes les offres, y
+-- compris pour un appelant qui n'en verrait qu'une partie. On restreint donc
+-- explicitement qui a le droit de l'appeler.
+--
+-- ATTENTION : « from public » est indispensable et vient EN PREMIER. PostgreSQL
+-- accorde l'exécution au groupe public par défaut ; retirer le droit à anon
+-- seul ne retire rien. Voir migration 0011, qui corrige cet oubli.
+revoke all on function public.fiches_perimees(integer) from public;
+revoke all on function public.fiches_perimees(integer) from anon, authenticated;
+grant execute on function public.fiches_perimees(integer) to service_role;
+
+-- --- La dépublication --------------------------------------------------------
+
+create or replace function public.expirer_fiches(jours integer default 60)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  nombre integer;
+begin
+  update public.offers
+     set status = 'draft'
+   where status = 'published'
+     and last_confirmed_at < now() - make_interval(days => greatest(jours, 1));
+
+  get diagnostics nombre = row_count;
+  return nombre;
+end;
+$$;
+
+-- Même remarque que ci-dessus : « from public » d'abord, sinon rien n'est fermé.
+revoke all on function public.expirer_fiches(integer) from public;
+revoke all on function public.expirer_fiches(integer) from anon, authenticated;
+grant execute on function public.expirer_fiches(integer) to service_role;
+
+-- =============================================================================
+--  PLANIFICATION HEBDOMADAIRE
+-- =============================================================================
+--
+--  pg_cron est le planificateur intégré à PostgreSQL. Il faut l'activer une
+--  fois : Database -> Extensions -> chercher « pg_cron » -> activer.
+--  Ou simplement laisser la ligne ci-dessous s'en charger.
+
+create extension if not exists pg_cron;
+
+-- Retire une éventuelle tâche du même nom, pour que ce fichier puisse être
+-- rejoué sans créer de doublon.
+do $$
+begin
+  perform cron.unschedule('expiration-fiches');
+exception
+  when others then null; -- la tâche n'existait pas : rien à faire
+end;
+$$;
+
+-- Tous les lundis à 6 h (heure du serveur, UTC).
+select cron.schedule(
+  'expiration-fiches',
+  '0 6 * * 1',
+  $$ select public.expirer_fiches(); $$
+);
+
+-- =============================================================================
+--  VÉRIFICATIONS
+-- =============================================================================
+--
+--  La tâche est-elle enregistrée ?
+--    select jobname, schedule, active from cron.job where jobname = 'expiration-fiches';
+--
+--  Qu'est-ce qui expirerait aujourd'hui ? (ne modifie rien)
+--    select * from public.fiches_perimees();
+--
+--  Historique des passages, après le premier lundi :
+--    select status, start_time, return_message from cron.job_run_details
+--     where jobid = (select jobid from cron.job where jobname = 'expiration-fiches')
+--     order by start_time desc limit 10;
+--
+--  Pour arrêter la planification :
+--    select cron.unschedule('expiration-fiches');
+-- =============================================================================
+
+
+-- >>>>>>>>>>>>>>>>>>>>  0011_ferme_acces_expiration.sql  <<<<<<<<<<<<<<<<<<<<
+
+-- =============================================================================
+-- 0011 — Fermer l'accès aux fonctions d'expiration   (CORRECTIF DE SÉCURITÉ)
+-- =============================================================================
+--
+-- LE DÉFAUT
+--   La migration 0010 croyait fermer l'accès avec :
+--       revoke execute on function ... from anon, authenticated;
+--
+--   C'est insuffisant. PostgreSQL accorde le droit d'exécution d'une fonction
+--   au groupe « public » par défaut, et ce groupe englobe tout le monde —
+--   y compris anon. Retirer le droit à anon ne retire rien tant que public
+--   l'a encore.
+--
+-- CE QUE ÇA PERMETTAIT
+--   N'importe quel visiteur, avec la clé publique lisible dans le code du
+--   site, pouvait appeler :
+--       expirer_fiches(0)
+--   greatest(0, 1) valant 1, cela dépubliait toute offre de plus d'un jour —
+--   c'est-à-dire le catalogue entier. Les fonctions étant en SECURITY DEFINER,
+--   les règles RLS ne s'y opposaient pas : c'est précisément le pouvoir qu'on
+--   leur donne, et la raison pour laquelle leurs droits d'appel doivent être
+--   verrouillés à la main.
+--
+-- APRÈS CE FICHIER
+--   Seul service_role peut les appeler : la tâche hebdomadaire (qui s'exécute
+--   dans la base, sans passer par le réseau) et la fonction serveur
+--   « expiration-fiches », qui vérifie de son côté que le demandeur est
+--   administrateur.
+-- =============================================================================
+
+revoke all on function public.fiches_perimees(integer) from public;
+revoke all on function public.expirer_fiches(integer)  from public;
+
+revoke all on function public.fiches_perimees(integer) from anon, authenticated;
+revoke all on function public.expirer_fiches(integer)  from anon, authenticated;
+
+grant execute on function public.fiches_perimees(integer) to service_role;
+grant execute on function public.expirer_fiches(integer)  to service_role;
+
+-- =============================================================================
+--  VÉRIFICATION
+-- =============================================================================
+--
+--  Qui a le droit d'appeler quoi ? La colonne « droits » ne doit contenir que
+--  service_role et le propriétaire — ni public, ni anon, ni authenticated.
+--
+--    select p.proname as fonction,
+--           coalesce(array_to_string(p.proacl, E'\n'), '(par defaut = tout le monde)') as droits
+--      from pg_proc p
+--      join pg_namespace n on n.oid = p.pronamespace
+--     where n.nspname = 'public'
+--       and p.proname in ('fiches_perimees', 'expirer_fiches');
+--
+--  Test grandeur nature, depuis un terminal, avec la clé publique :
+--    l'appel doit renvoyer une erreur de permission, pas un résultat.
 -- =============================================================================
