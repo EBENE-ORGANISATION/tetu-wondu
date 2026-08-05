@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useStats } from '@/hooks/useStats'
 import { useSession } from '@/hooks/useAuth'
+import { Fraicheur } from '@/components/admin/Fraicheur'
 import { supabase } from '@/lib/supabase'
 
 /**
@@ -118,6 +119,8 @@ export default function Tableau() {
           Aucune offre pour l'instant.
         </p>
       )}
+
+      <Fraicheur />
 
       <p className="mt-8 rounded-xl border border-ligne bg-blanc p-4 text-sm text-second">
         <strong className="text-encre">Un clic n'est pas une vente.</strong> Ces chiffres prouvent

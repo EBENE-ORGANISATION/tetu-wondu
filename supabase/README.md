@@ -84,6 +84,7 @@ plateforme la fournit toute seule, elle n'est écrite nulle part.
 | Fonction | Rôle |
 |---|---|
 | `administrateurs` | Lister, inviter et révoquer les administrateurs |
+| `expiration-fiches` | Dépublier les offres non confirmées depuis 60 jours |
 
 ### Déployer sans rien installer
 
@@ -110,6 +111,45 @@ de service — donc sans faire confiance à ce que raconte le navigateur. Deux
 garde-fous en plus : on ne peut pas retirer ses propres droits, ni descendre en
 dessous d'un administrateur. Sans eux, on peut s'enfermer dehors et il faut
 repasser par l'éditeur SQL pour rentrer.
+
+## Planifier l'expiration hebdomadaire des fiches
+
+Une fois `expiration-fiches` déployée de la même manière, il reste à la
+déclencher toute seule chaque semaine.
+
+### Par le tableau de bord — recommandé
+
+Supabase → **Integrations** → **Cron** → *Create job*.
+
+| Champ | Valeur |
+|---|---|
+| Name | `expiration-fiches` |
+| Schedule | `0 6 * * 1` — tous les lundis à 6 h |
+| Type | Supabase Edge Function |
+| Function | `expiration-fiches` |
+
+Supabase se charge de l'authentification : **aucune clé à saisir nulle part**.
+C'est la raison de préférer ce chemin.
+
+### Avant de laisser tourner : regardez d'abord
+
+Dans le back-office, section **Fraîcheur du catalogue**, le bouton
+*Voir ce qui expirerait* appelle la même fonction en mode simulation. Rien
+n'est modifié, mais vous voyez exactement quelles fiches disparaîtraient et
+quels créateurs seraient à rappeler.
+
+Faites-le une fois avant de programmer la tâche. Dépublier vingt fiches par
+surprise se répare, mais se remarque.
+
+### Ce que la fonction ne fait pas
+
+Elle retire les fiches périmées. **Elle ne vous dit pas ce qui a changé.** La
+vraie boucle reste manuelle : un message WhatsApp par créateur — le back-office
+vous le pré-remplit, avec la question qui compte : « combien de commandes vous
+sont venues de la plateforme ce mois-ci ? »
+
+Sans cette boucle, vous saurez que le catalogue est frais, mais toujours pas
+s'il fait vendre. C'est exactement la question que posera un investisseur.
 
 ## Régénérer `A-EXECUTER-EN-UNE-FOIS.sql`
 
