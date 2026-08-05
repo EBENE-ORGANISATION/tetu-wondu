@@ -49,7 +49,12 @@ $$;
 -- SECURITY DEFINER ci-dessus : la fonction doit voir toutes les offres, y
 -- compris pour un appelant qui n'en verrait qu'une partie. On restreint donc
 -- explicitement qui a le droit de l'appeler.
-revoke execute on function public.fiches_perimees(integer) from anon, authenticated;
+--
+-- ATTENTION : « from public » est indispensable et vient EN PREMIER. PostgreSQL
+-- accorde l'exécution au groupe public par défaut ; retirer le droit à anon
+-- seul ne retire rien. Voir migration 0011, qui corrige cet oubli.
+revoke all on function public.fiches_perimees(integer) from public;
+revoke all on function public.fiches_perimees(integer) from anon, authenticated;
 grant execute on function public.fiches_perimees(integer) to service_role;
 
 -- --- La dépublication --------------------------------------------------------
@@ -73,7 +78,9 @@ begin
 end;
 $$;
 
-revoke execute on function public.expirer_fiches(integer) from anon, authenticated;
+-- Même remarque que ci-dessus : « from public » d'abord, sinon rien n'est fermé.
+revoke all on function public.expirer_fiches(integer) from public;
+revoke all on function public.expirer_fiches(integer) from anon, authenticated;
 grant execute on function public.expirer_fiches(integer) to service_role;
 
 -- =============================================================================
