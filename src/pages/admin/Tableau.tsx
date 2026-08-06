@@ -99,6 +99,7 @@ export default function Tableau() {
       )}
 
       <div className="mt-6 flex flex-wrap gap-3">
+        <Lien vers="/admin/candidatures">Candidatures</Lien>
         <Lien vers="/admin/createurs">Créateurs</Lien>
         <Lien vers="/admin/offres">Offres</Lien>
         <Lien vers="/admin/administrateurs">Administrateurs</Lien>

@@ -4,6 +4,7 @@ import Accueil from '@/pages/Accueil'
 import Recherche from '@/pages/Recherche'
 import FicheOffre from '@/pages/FicheOffre'
 import FicheCreateur from '@/pages/FicheCreateur'
+import Rejoindre from '@/pages/Rejoindre'
 import Introuvable from '@/pages/Introuvable'
 import { BandeauHorsLigne } from '@/components/BandeauHorsLigne'
 
@@ -24,6 +25,7 @@ const FormulaireCreateur = lazy(() => import('@/pages/admin/FormulaireCreateur')
 const Offres = lazy(() => import('@/pages/admin/Offres'))
 const FormulaireOffre = lazy(() => import('@/pages/admin/FormulaireOffre'))
 const Administrateurs = lazy(() => import('@/pages/admin/Administrateurs'))
+const Candidatures = lazy(() => import('@/pages/admin/Candidatures'))
 const RouteProtegee = lazy(() =>
   import('@/components/RouteProtegee').then((m) => ({ default: m.RouteProtegee })),
 )
@@ -43,6 +45,7 @@ export default function App() {
         <Route path="/recherche" element={<Recherche />} />
         <Route path="/offre/:slug" element={<FicheOffre />} />
         <Route path="/createur/:slug" element={<FicheCreateur />} />
+        <Route path="/rejoindre" element={<Rejoindre />} />
 
         <Route path="/admin" element={<Admin element={<Tableau />} />} />
         <Route path="/admin/createurs" element={<Admin element={<Createurs />} />} />
@@ -50,6 +53,7 @@ export default function App() {
         <Route path="/admin/offres" element={<Admin element={<Offres />} />} />
         <Route path="/admin/offres/:id" element={<Admin element={<FormulaireOffre />} />} />
         <Route path="/admin/administrateurs" element={<Admin element={<Administrateurs />} />} />
+        <Route path="/admin/candidatures" element={<Admin element={<Candidatures />} />} />
 
         {/* Sans cette route, une adresse inconnue afficherait une page blanche. */}
         <Route path="*" element={<Introuvable />} />

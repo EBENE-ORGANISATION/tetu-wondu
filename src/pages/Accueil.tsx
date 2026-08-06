@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAteliers } from '@/hooks/useAteliers'
 import { CarteAtelier } from '@/components/CarteAtelier'
 import { BarreRecherche } from '@/components/BarreRecherche'
@@ -56,6 +57,13 @@ export default function Accueil() {
           )}
         </div>
         <p className="mt-1 text-second">Les créateurs et fabricants du Togo</p>
+
+        <Link
+          to="/rejoindre"
+          className="mt-3 inline-flex items-center gap-1.5 font-action text-sm font-semibold text-accent"
+        >
+          Vous êtes créateur ? Rejoignez l'annuaire <span aria-hidden="true">›</span>
+        </Link>
 
         <div className="mt-4">
           <BarreRecherche
