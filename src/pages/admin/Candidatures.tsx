@@ -7,7 +7,7 @@ import {
 } from '@/hooks/useAdminCandidatures'
 import type { CandidatureAdmin } from '@/hooks/useAdminCandidatures'
 import { Photo } from '@/components/Photo'
-import { montant, metier } from '@/lib/format'
+import { montant, metier, prix } from '@/lib/format'
 import { lienWhatsApp } from '@/lib/whatsapp'
 
 const NOM_APP = import.meta.env.VITE_APP_NAME || 'la plateforme'
@@ -166,8 +166,33 @@ function Fiche({
           </p>
         )}
 
+        {/* Les pièces décrites : elles deviendront des offres en brouillon,
+            prêtes pour le jour où l'annuaire s'ouvrira aux objets. */}
+        {c.pieces?.length > 0 && (
+          <div className="mt-3 rounded-xl border border-ligne p-3">
+            <p className="font-action text-xs font-bold tracking-widest text-second uppercase">
+              {c.pieces.length} pièce{c.pieces.length > 1 ? 's' : ''} décrite
+              {c.pieces.length > 1 ? 's' : ''}
+            </p>
+            <ul className="mt-2 space-y-1.5">
+              {c.pieces.map((p, i) => (
+                <li key={i} className="flex items-baseline gap-2 text-sm">
+                  <span className="min-w-0 flex-1 truncate text-encre">{p.titre}</span>
+                  <span className="shrink-0 font-action text-xs text-second">
+                    {prix(p.price_mode, p.price_cfa)}
+                    {p.sur_commande && p.delai_jours ? ` · ${p.delai_jours} j` : ''}
+                    {p.photos?.length ? ` · ${p.photos.length} photo${p.photos.length > 1 ? 's' : ''}` : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-action text-xs text-second">
           <span>WhatsApp {c.whatsapp_number}</span>
+          {c.phone && <span>tél. {c.phone}</span>}
+          {c.accepts_custom && <span>sur mesure</span>}
           {c.instagram && <span>@{c.instagram}</span>}
           {c.catalog_url && (
             <a href={c.catalog_url} target="_blank" rel="noopener noreferrer" className="text-accent">

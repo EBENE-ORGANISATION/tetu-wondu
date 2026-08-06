@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useDeposerCandidature } from '@/hooks/useCandidature'
-import type { Candidature } from '@/hooks/useCandidature'
-import { Champ, Saisie, Zone, Liste, Section } from '@/components/admin/Champs'
+import type { Candidature, PieceSaisie } from '@/hooks/useCandidature'
+import { Champ, Saisie, Zone, Liste, Section, Bascule } from '@/components/admin/Champs'
+import { PiecesCandidature } from '@/components/PiecesCandidature'
 import { nettoyerNumero, numeroValide } from '@/lib/slug'
 import { poidsLisible } from '@/lib/compression'
 import type { VendorType } from '@/types/database'
@@ -14,6 +15,7 @@ const VIDE: Candidature = {
   display_name: '',
   contact_name: null,
   whatsapp_number: '',
+  phone: null,
   city: '',
   neighborhood: null,
   vendor_type: 'maker',
@@ -22,6 +24,7 @@ const VIDE: Candidature = {
   price_from_cfa: null,
   catalog_url: null,
   instagram: null,
+  accepts_custom: false,
   consentement: false,
 }
 
@@ -45,6 +48,7 @@ const VIDE: Candidature = {
 export default function Rejoindre() {
   const [c, setC] = useState<Candidature>(VIDE)
   const [photos, setPhotos] = useState<File[]>([])
+  const [pieces, setPieces] = useState<PieceSaisie[]>([])
   const [erreurs, setErreurs] = useState<Record<string, string>>({})
   const [etape, setEtape] = useState<string | null>(null)
   const champFichier = useRef<HTMLInputElement>(null)
@@ -68,6 +72,11 @@ export default function Rejoindre() {
 
     if (!c.consentement) e.consentement = 'Sans votre accord, nous ne pouvons pas publier votre fiche.'
 
+    // Une pièce commencée mais sans nom n'est pas exploitable : mieux vaut le
+    // dire tout de suite que de la perdre en silence à l'enregistrement.
+    if (pieces.some((p) => !p.titre.trim()))
+      e.pieces = 'Une de vos pièces n’a pas de nom. Nommez-la ou retirez-la.'
+
     setErreurs(e)
     return Object.keys(e).length === 0
   }
@@ -81,8 +90,13 @@ export default function Rejoindre() {
 
     try {
       await deposer.mutateAsync({
-        candidature: { ...c, whatsapp_number: nettoyerNumero(c.whatsapp_number) },
+        candidature: {
+          ...c,
+          whatsapp_number: nettoyerNumero(c.whatsapp_number),
+          phone: c.phone ? nettoyerNumero(c.phone) : null,
+        },
         photos,
+        pieces,
         onProgres: setEtape,
       })
     } catch {
@@ -207,6 +221,15 @@ export default function Rejoindre() {
             />
           </Champ>
 
+          <Champ label="Autre téléphone (facultatif)" aide="Si vous préférez être appelé.">
+            <Saisie
+              type="tel"
+              inputMode="numeric"
+              value={c.phone ?? ''}
+              onChange={(e) => modifier({ phone: e.target.value || null })}
+            />
+          </Champ>
+
           <Champ label="Instagram (facultatif)" aide="Sans le @.">
             <Saisie
               value={c.instagram ?? ''}
@@ -245,6 +268,13 @@ export default function Rejoindre() {
               placeholder="https://…"
             />
           </Champ>
+
+          <Bascule
+            label="J'accepte les commandes sur mesure"
+            aide="Couleurs, tailles ou motifs au choix du client."
+            coche={c.accepts_custom}
+            onChange={(b) => modifier({ accepts_custom: b })}
+          />
         </Section>
 
         <Section titre="Vos photos">
@@ -301,6 +331,11 @@ export default function Rejoindre() {
               />
             </>
           )}
+        </Section>
+
+        <Section titre="Vos pièces — facultatif">
+          <PiecesCandidature pieces={pieces} onChange={setPieces} />
+          {erreurs.pieces && <p className="text-sm text-accent">{erreurs.pieces}</p>}
         </Section>
 
         {/* Le consentement. Non coché par défaut, et la base refuse un envoi
