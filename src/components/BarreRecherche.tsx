@@ -12,10 +12,13 @@ export function BarreRecherche({
   valeur,
   onChange,
   autoFocus = false,
+  invite = 'Chercher un atelier, une ville…',
 }: {
   valeur: string
   onChange: (v: string) => void
   autoFocus?: boolean
+  /** Ce qu'on cherche change selon l'écran : des ateliers ici, des objets ailleurs. */
+  invite?: string
 }) {
   const [saisie, setSaisie] = useState(valeur)
 
@@ -46,8 +49,8 @@ export function BarreRecherche({
         autoFocus={autoFocus}
         value={saisie}
         onChange={(e) => setSaisie(e.target.value)}
-        placeholder="Chercher un objet, un créateur…"
-        aria-label="Chercher un objet ou un créateur"
+        placeholder={invite}
+        aria-label={invite}
         className="h-12 w-full rounded-full border border-ligne bg-blanc pr-11 pl-11 text-encre placeholder:text-second"
       />
 

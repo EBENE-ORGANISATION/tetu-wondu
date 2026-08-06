@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { urlImage } from '@/lib/images'
+import { urlImage, urlImageAtelier } from '@/lib/images'
 
 /**
  * Une photo d'offre, avec son cadre de remplacement.
@@ -18,6 +18,7 @@ import { urlImage } from '@/lib/images'
 export function Photo({
   chemin,
   alt,
+  source = 'offre',
   mention = false,
   eager = false,
   className = '',
@@ -25,6 +26,8 @@ export function Photo({
   /** Le chemin dans le bucket, ou rien si l'offre n'a pas de photo. */
   chemin?: string | null
   alt: string
+  /** De quel bucket vient la photo : celui des offres ou celui des ateliers. */
+  source?: 'offre' | 'atelier'
   /** Afficher « image en attente » dans le cadre vide. */
   mention?: boolean
   /** Charger sans attendre : uniquement pour l'image principale d'une fiche. */
@@ -32,6 +35,7 @@ export function Photo({
   className?: string
 }) {
   const [echec, setEchec] = useState(false)
+  const adresse = source === 'atelier' ? urlImageAtelier : urlImage
 
   if (!chemin || echec) {
     return (
@@ -43,7 +47,7 @@ export function Photo({
 
   return (
     <img
-      src={urlImage(chemin)}
+      src={adresse(chemin)}
       alt={alt}
       loading={eager ? 'eager' : 'lazy'}
       decoding="async"

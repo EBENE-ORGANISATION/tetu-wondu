@@ -1,3 +1,5 @@
+import { sansAccents } from './texte'
+
 /**
  * Fabrique l'identifiant qui apparaîtra dans l'adresse d'une fiche :
  * « Pagne kenté tissé main » devient « pagne-kente-tisse-main ».
@@ -14,9 +16,7 @@
  *    formulaire ne recalcule l'identifiant qu'à la création, jamais ensuite.
  */
 export function fabriquerSlug(texte: string): string {
-  return texte
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // retire les accents
+  return sansAccents(texte)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-') // tout le reste devient un tiret
     .replace(/^-+|-+$/g, '') // pas de tiret au début ni à la fin

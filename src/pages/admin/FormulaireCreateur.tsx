@@ -1,8 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useVendor, useEnregistrerVendor } from '@/hooks/useAdminVendors'
+import { usePhotosAtelier, useSupprimerPhotoAtelier } from '@/hooks/usePhotosAtelier'
+import { useUploadImages } from '@/hooks/useUploadImages'
 import { Champ, Saisie, Zone, Liste, Bascule, Section, Segments } from '@/components/admin/Champs'
+import { Photo } from '@/components/Photo'
 import { fabriquerSlug, nettoyerNumero, numeroValide } from '@/lib/slug'
+import { poidsLisible } from '@/lib/compression'
 import type { Vendor, VendorType } from '@/types/database'
 
 type Brouillon = Partial<Vendor>
@@ -23,6 +27,8 @@ const VIDE: Brouillon = {
   accepts_custom: false,
   is_verified: false,
   is_active: true,
+  price_from_cfa: null,
+  catalog_url: null,
 }
 
 export default function FormulaireCreateur() {
@@ -35,6 +41,31 @@ export default function FormulaireCreateur() {
 
   const [v, setV] = useState<Brouillon>(VIDE)
   const [erreurs, setErreurs] = useState<Record<string, string>>({})
+  const [progres, setProgres] = useState<string | null>(null)
+  const champFichier = useRef<HTMLInputElement>(null)
+
+  const { data: photos } = usePhotosAtelier(id)
+  const envoyer = useUploadImages('atelier')
+  const supprimerPhoto = useSupprimerPhotoAtelier()
+
+  async function choisirPhotos(evt: React.ChangeEvent<HTMLInputElement>) {
+    const fichiers = Array.from(evt.target.files ?? [])
+    if (!fichiers.length || creation || !id) return
+
+    const resultat = await envoyer.mutateAsync({
+      offerId: id,
+      fichiers,
+      departSortOrder: photos?.length ?? 0,
+      onProgres: (fait, total) => setProgres(`Photo ${fait} sur ${total}…`),
+    })
+
+    setProgres(
+      resultat.echecs.length
+        ? `${resultat.envoyees} envoyée(s). Échec : ${resultat.echecs.join(' — ')}`
+        : `${resultat.envoyees} photo(s) envoyée(s) — ${poidsLisible(resultat.poidsAvant)} réduits à ${poidsLisible(resultat.poidsApres)}.`,
+    )
+    if (champFichier.current) champFichier.current.value = ''
+  }
 
   useEffect(() => {
     if (existant) setV(existant)
@@ -46,6 +77,10 @@ export default function FormulaireCreateur() {
     const e: Record<string, string> = {}
     if (!v.display_name?.trim()) e.display_name = 'Le nom est obligatoire.'
     if (!v.city?.trim()) e.city = 'La ville est obligatoire.'
+
+    // La base refuse un lien mal formé. Autant le dire ici, en clair.
+    if (v.catalog_url && !/^https?:\/\/.+/i.test(v.catalog_url))
+      e.catalog_url = "L'adresse doit commencer par https:// — copiez-la depuis la barre du navigateur."
 
     const numero = nettoyerNumero(v.whatsapp_number ?? '')
     if (!numero) e.whatsapp_number = 'Le numéro WhatsApp est obligatoire.'
@@ -212,6 +247,40 @@ export default function FormulaireCreateur() {
           </Champ>
         </Section>
 
+        {/* Les trois champs de la phase 1 : ce que le visiteur voit avant même
+            d'ouvrir la fiche. */}
+        <Section titre="Ce qui s'affiche sur l'annuaire">
+          <Champ
+            label="Prix de départ en FCFA"
+            aide="Le prix de sa pièce la moins chère. Affiché « À partir de… ». Laissez vide si le créateur préfère ne pas en donner — mieux vaut rien qu'un chiffre inventé."
+          >
+            <Saisie
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={v.price_from_cfa ?? ''}
+              onChange={(e) =>
+                modifier({ price_from_cfa: e.target.value === '' ? null : Number(e.target.value) })
+              }
+              placeholder="3000"
+            />
+          </Champ>
+
+          <Champ
+            label="Lien vers son catalogue (facultatif)"
+            erreur={erreurs.catalog_url}
+            aide="Son Instagram, son catalogue WhatsApp Business, un dossier de photos. Si vous le laissez vide, la fiche montrera les objets saisis dans l'application."
+          >
+            <Saisie
+              type="url"
+              inputMode="url"
+              value={v.catalog_url ?? ''}
+              onChange={(e) => modifier({ catalog_url: e.target.value.trim() || null })}
+              placeholder="https://instagram.com/son-compte"
+            />
+          </Champ>
+        </Section>
+
         <Section titre="Présentation">
           <Champ
             label="Phrase d'accroche"
@@ -284,6 +353,73 @@ export default function FormulaireCreateur() {
           )}
         </div>
       </form>
+
+      {/* Les photos ne peuvent partir qu'après création : chaque fichier est
+          rangé dans un dossier portant l'identifiant de l'atelier, qui n'existe
+          pas tant qu'il n'est pas enregistré. */}
+      <Section titre="Photos de l'atelier">
+        {creation ? (
+          <p className="rounded-xl border border-ligne bg-blanc p-4 text-sm text-second">
+            Enregistrez d'abord l'atelier : les photos s'ajoutent ensuite.
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              {photos?.map((img, i) => (
+                <div key={img.id} className="relative aspect-square overflow-hidden rounded-xl">
+                  <Photo
+                    chemin={img.storage_path}
+                    alt=""
+                    source="atelier"
+                    className="size-full"
+                  />
+                  {i === 0 && (
+                    <span className="absolute bottom-1 left-1 rounded bg-encre/80 px-1.5 py-0.5 font-action text-[10px] font-bold text-blanc">
+                      Couverture
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => supprimerPhoto.mutate({ id: img.id, chemin: img.storage_path })}
+                    aria-label="Supprimer cette photo"
+                    className="absolute top-1 right-1 flex size-7 items-center justify-center rounded-full bg-encre/80 text-blanc"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => champFichier.current?.click()}
+                className="flex aspect-square items-center justify-center rounded-xl border-2 border-dashed border-ligne text-3xl text-second"
+              >
+                +
+              </button>
+            </div>
+
+            <input
+              ref={champFichier}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => void choisirPhotos(e)}
+              className="hidden"
+            />
+
+            <p className="text-sm text-second">
+              Trois photos suffisent : l'atelier ou la boutique, une pièce en gros plan, et le
+              créateur au travail. La première sert de couverture sur l'annuaire.
+            </p>
+
+            {(envoyer.isPending || progres) && (
+              <p className="rounded-xl border border-ligne bg-blanc p-3 text-sm text-encre">
+                {envoyer.isPending ? (progres ?? 'Préparation…') : progres}
+              </p>
+            )}
+          </>
+        )}
+      </Section>
     </main>
   )
 }

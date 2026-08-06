@@ -11,3 +11,14 @@ const URL_BASE = import.meta.env.VITE_SUPABASE_URL
 export function urlImage(chemin: string): string {
   return `${URL_BASE}/storage/v1/object/public/offer-images/${chemin}`
 }
+
+/**
+ * L'adresse publique d'une photo d'atelier.
+ *
+ * Bucket distinct de celui des offres : y ranger des photos de créateurs
+ * rendrait le nom « offer-images » mensonger, et on vit longtemps avec ce
+ * genre de confusion.
+ */
+export function urlImageAtelier(chemin: string): string {
+  return `${URL_BASE}/storage/v1/object/public/atelier-images/${chemin}`
+}

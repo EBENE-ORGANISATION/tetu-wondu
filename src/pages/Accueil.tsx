@@ -1,32 +1,52 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useMemo, useState } from 'react'
 import { useAteliers } from '@/hooks/useAteliers'
-import { useCategories } from '@/hooks/useCategories'
-import { Monogramme } from '@/components/Monogramme'
-import { VignetteObjet } from '@/components/VignetteObjet'
-import { SqueletteAccueil } from '@/components/SqueletteAccueil'
-import { metier } from '@/lib/format'
-import { FeuilleWhatsApp } from '@/components/FeuilleWhatsApp'
-import { messageAtelier } from '@/lib/whatsapp'
+import { CarteAtelier } from '@/components/CarteAtelier'
+import { BarreRecherche } from '@/components/BarreRecherche'
 import { trackEvent } from '@/lib/analytics'
-import type { AtelierAvecOffres } from '@/types/database'
+import { normaliser } from '@/lib/texte'
+import type { AtelierCarte } from '@/types/database'
 
 const NOM_APP = import.meta.env.VITE_APP_NAME || 'Annuaire'
 
 /**
- * L'accueil « Ateliers ».
+ * L'accueil de la phase 1 : la liste des ateliers.
  *
- * On entre par le créateur, pas par l'objet. C'est la première des trois
- * décisions structurantes du projet : ce qui relie une savonnière de Kara et
- * un imprimeur de Lomé, ce n'est pas la catégorie, c'est la personne. Un
- * client qui a aimé un objet revient vers son auteur.
+ * On entre par la marque, pas par l'objet. C'est la première des trois
+ * décisions structurantes du projet, poussée jusqu'au bout : ce qui relie une
+ * savonnière de Kara et un imprimeur de Lomé, ce n'est pas la catégorie, c'est
+ * la personne.
+ *
+ * Le filtrage se fait ici, dans le téléphone, et non par une requête à chaque
+ * lettre tapée. À l'échelle d'un annuaire d'ateliers — quelques dizaines, pas
+ * quelques milliers — c'est instantané, ça ne consomme rien, et surtout ça
+ * continue de fonctionner sans réseau.
  */
 export default function Accueil() {
   const { data: ateliers, isPending, isError, refetch } = useAteliers()
+  const [recherche, setRecherche] = useState('')
+  const [ville, setVille] = useState<string | null>(null)
+
+  const villes = useMemo(() => {
+    const compte = new Map<string, number>()
+    for (const a of ateliers ?? []) compte.set(a.city, (compte.get(a.city) ?? 0) + 1)
+    return [...compte.entries()].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))
+  }, [ateliers])
+
+  const visibles = useMemo(() => {
+    const terme = normaliser(recherche.trim())
+    return (ateliers ?? []).filter((a) => {
+      if (ville && a.city !== ville) return false
+      if (!terme) return true
+      const matiere = normaliser(
+        [a.display_name, a.tagline, a.city, a.neighborhood].filter(Boolean).join(' '),
+      )
+      return matiere.includes(terme)
+    })
+  }, [ateliers, recherche, ville])
 
   return (
-    <main className="mx-auto min-h-dvh max-w-2xl pb-16">
-      <header className="px-5 pt-6 pb-5">
+    <main className="mx-auto min-h-dvh max-w-2xl px-4 pb-16">
+      <header className="pt-6 pb-4">
         <div className="flex items-baseline justify-between gap-3">
           <h1 className="text-3xl font-bold tracking-tight text-encre">{NOM_APP}</h1>
           {ateliers && (
@@ -35,40 +55,70 @@ export default function Accueil() {
             </p>
           )}
         </div>
-        <p className="mt-1 text-second">Choisissez d'abord un créateur</p>
+        <p className="mt-1 text-second">Les créateurs et fabricants du Togo</p>
 
-        {/* Une fausse barre de recherche qui mène à l'écran dédié, plutôt qu'un
-            champ actif ici. C'est le comportement attendu sur téléphone : le
-            clavier s'ouvre sur un écran fait pour lui, pas au milieu d'une
-            liste qu'il recouvre à moitié. */}
-        <Link
-          to="/recherche"
-          className="mt-4 flex h-12 items-center gap-3 rounded-full border border-ligne bg-blanc px-4 text-second"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="size-5 shrink-0 fill-none stroke-current stroke-2"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.5-3.5" strokeLinecap="round" />
-          </svg>
-          Chercher un objet, un créateur…
-        </Link>
+        <div className="mt-4">
+          <BarreRecherche
+            valeur={recherche}
+            onChange={(v) => {
+              setRecherche(v)
+              // On n'enregistre que les recherches un peu sérieuses : compter
+              // chaque lettre effacée ne dirait rien d'utile.
+              if (v.trim().length >= 3) {
+                trackEvent('search', {
+                  metadata: { terme: v.trim(), resultats: visibles.length },
+                })
+              }
+            }}
+          />
+        </div>
       </header>
 
-      <Categories />
+      {villes.length > 1 && (
+        <nav aria-label="Villes" className="scroll-x -mx-4 mb-5 flex gap-2 px-4">
+          <Pastille actif={ville === null} onClick={() => setVille(null)}>
+            Toutes les villes
+          </Pastille>
+          {villes.map(([nom, n]) => (
+            <Pastille key={nom} actif={ville === nom} onClick={() => setVille(nom)}>
+              {nom} <span className="opacity-60">{n}</span>
+            </Pastille>
+          ))}
+        </nav>
+      )}
 
-      {isPending && <SqueletteAccueil />}
+      {isPending && <Squelette />}
 
-      {isError && <Erreur onReessayer={() => void refetch()} />}
+      {isError && (
+        <div className="rounded-2xl border border-ligne bg-blanc p-6 text-center">
+          <p className="font-bold text-encre">Impossible de charger les ateliers</p>
+          <p className="mt-1 text-sm text-second">
+            Votre connexion est peut-être interrompue. Rien n'est perdu.
+          </p>
+          <button
+            onClick={() => void refetch()}
+            className="mt-4 rounded-full bg-encre px-6 font-action font-semibold text-blanc"
+          >
+            Réessayer
+          </button>
+        </div>
+      )}
 
-      {ateliers && ateliers.length === 0 && <Vide />}
+      {ateliers && visibles.length === 0 && (
+        <Vide
+          terme={recherche.trim()}
+          filtre={ville}
+          onEffacer={() => {
+            setRecherche('')
+            setVille(null)
+          }}
+        />
+      )}
 
-      {ateliers && ateliers.length > 0 && (
-        <div className="space-y-8">
-          {ateliers.map((atelier) => (
-            <SectionAtelier key={atelier.id} atelier={atelier} />
+      {visibles.length > 0 && (
+        <div className="space-y-4">
+          {visibles.map((a: AtelierCarte) => (
+            <CarteAtelier key={a.id} atelier={a} />
           ))}
         </div>
       )}
@@ -76,154 +126,73 @@ export default function Accueil() {
   )
 }
 
-/** Les catégories en pastilles défilables, sous l'en-tête. */
-function Categories() {
-  const { data: categories } = useCategories()
-  if (!categories?.length) return null
-
+function Pastille({
+  actif,
+  onClick,
+  children,
+}: {
+  actif: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
   return (
-    <nav aria-label="Catégories" className="scroll-x mb-7 flex gap-2 px-5">
-      {categories.map((c) => (
-        <Link
-          key={c.id}
-          to={`/recherche?cat=${c.id}`}
-          onClick={() => trackEvent('category_view', { metadata: { categorie: c.slug } })}
-          className="flex shrink-0 items-center rounded-full border border-ligne bg-blanc px-4 font-action text-sm font-semibold text-encre"
-        >
-          {c.name}
-        </Link>
-      ))}
-    </nav>
-  )
-}
-
-function SectionAtelier({ atelier }: { atelier: AtelierAvecOffres }) {
-  const lieu = atelier.neighborhood ? `${atelier.city}, ${atelier.neighborhood}` : atelier.city
-  const [feuilleOuverte, setFeuilleOuverte] = useState(false)
-
-  return (
-    <section>
-      <div className="flex items-center gap-3 px-5">
-        <Link to={`/createur/${atelier.slug}`} className="shrink-0">
-          <Monogramme nom={atelier.display_name} logoUrl={atelier.logo_url} />
-        </Link>
-
-        <div className="min-w-0 flex-1">
-          <Link to={`/createur/${atelier.slug}`} className="block">
-            {/* Le nom passe à la ligne plutôt que d'être coupé : « Atelier
-                Tissage Nots… » fait douter de la fiche. */}
-            <h2 className="text-base leading-tight font-bold text-encre">
-              <NomAvecBadge nom={atelier.display_name} verifie={atelier.is_verified} />
-            </h2>
-            <p className="mt-0.5 truncate text-sm text-second">
-              {metier(atelier.vendor_type)} · {lieu}
-            </p>
-          </Link>
-        </div>
-
-        <button
-          onClick={() => setFeuilleOuverte(true)}
-          className="flex shrink-0 items-center rounded-full border border-accent px-4 font-action text-sm font-semibold text-accent"
-        >
-          Contacter
-        </button>
-      </div>
-
-      <div className="scroll-x mt-3 flex gap-3 px-5">
-        {atelier.offers.map((offre) => (
-          <VignetteObjet key={offre.id} offre={offre} />
-        ))}
-      </div>
-
-      {feuilleOuverte && (
-        <FeuilleWhatsApp
-          destinataire={{
-            nom: atelier.display_name,
-            whatsapp_number: atelier.whatsapp_number,
-            logo_url: atelier.logo_url,
-          }}
-          messageInitial={messageAtelier({
-            nom: atelier.display_name,
-            slug: atelier.slug,
-            contact_name: atelier.contact_name,
-          })}
-          onOuvrir={() =>
-            trackEvent('whatsapp_click', {
-              vendor_id: atelier.id,
-              metadata: { depuis: 'accueil' },
-            })
-          }
-          onFermer={() => setFeuilleOuverte(false)}
-        />
-      )}
-    </section>
-  )
-}
-
-/**
- * Le nom de l'atelier, avec son badge « Vérifié » collé au dernier mot.
- *
- * Sans cette précaution, sur un nom qui remplit la ligne, le badge part seul
- * sur la ligne suivante — et un badge de confiance flottant dans le vide fait
- * l'effet inverse de celui recherché.
- */
-function NomAvecBadge({ nom, verifie }: { nom: string; verifie: boolean }) {
-  if (!verifie) return <>{nom}</>
-
-  const mots = nom.split(' ')
-  const dernier = mots.pop() ?? nom
-  const debut = mots.join(' ')
-
-  return (
-    <>
-      {debut && `${debut} `}
-      <span className="whitespace-nowrap">
-        {dernier}
-        <Verifie />
-      </span>
-    </>
-  )
-}
-
-/** Le badge « Vérifié » : le principal signal de confiance de la plateforme. */
-function Verifie() {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      className="ml-1 inline-block size-4 shrink-0 -translate-y-px align-middle fill-accent"
-      role="img"
-      aria-label="Créateur vérifié"
+    <button
+      onClick={onClick}
+      aria-pressed={actif}
+      className={`shrink-0 rounded-full border px-4 font-action text-sm font-semibold ${
+        actif ? 'border-encre bg-encre text-blanc' : 'border-ligne bg-blanc text-encre'
+      }`}
     >
-      <path d="M10 1.5 12 3.6l2.9-.3.6 2.9 2.5 1.5-1.3 2.6 1.3 2.6-2.5 1.5-.6 2.9-2.9-.3L10 18.5 8 16.4l-2.9.3-.6-2.9-2.5-1.5 1.3-2.6L2 7.1l2.5-1.5.6-2.9 2.9.3z" />
-      <path d="m8.9 12.7-2.6-2.6 1.1-1.1 1.5 1.5 3.7-3.7 1.1 1.1z" className="fill-blanc" />
-    </svg>
+      {children}
+    </button>
   )
 }
 
-function Erreur({ onReessayer }: { onReessayer: () => void }) {
+function Vide({
+  terme,
+  filtre,
+  onEffacer,
+}: {
+  terme: string
+  filtre: string | null
+  onEffacer: () => void
+}) {
   return (
-    <div className="mx-5 rounded-2xl border border-ligne bg-blanc p-6 text-center">
-      <p className="font-bold text-encre">Impossible de charger les ateliers</p>
-      <p className="mt-1 text-sm text-second">
-        Votre connexion est peut-être interrompue. Rien n'est perdu.
+    <div className="rounded-2xl border border-ligne bg-blanc p-6 text-center">
+      <p className="font-bold text-encre">
+        {terme ? <>Aucun atelier pour « {terme} »</> : 'Aucun atelier ici pour le moment'}
+      </p>
+      <p className="mx-auto mt-1 max-w-xs text-sm text-second">
+        {filtre
+          ? `Personne n'est encore référencé à ${filtre}. Essayez une autre ville.`
+          : "Essayez un mot plus large, ou parcourez toutes les villes."}
       </p>
       <button
-        onClick={onReessayer}
+        onClick={onEffacer}
         className="mt-4 rounded-full bg-encre px-6 font-action font-semibold text-blanc"
       >
-        Réessayer
+        Tout afficher
       </button>
     </div>
   )
 }
 
-function Vide() {
+function Squelette() {
   return (
-    <div className="mx-5 rounded-2xl border border-ligne bg-blanc p-6 text-center">
-      <p className="font-bold text-encre">Aucun atelier pour le moment</p>
-      <p className="mt-1 text-sm text-second">
-        Les premières fiches arrivent. Revenez dans quelques jours.
-      </p>
+    <div aria-hidden="true" className="space-y-4">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="overflow-hidden rounded-2xl border border-ligne bg-blanc">
+          <div className="shimmer aspect-[5/3] w-full" />
+          <div className="flex gap-3 p-3">
+            <div className="shimmer size-12 shrink-0 rounded-xl" />
+            <div className="flex-1 space-y-2">
+              <div className="shimmer h-4 w-2/5 rounded" />
+              <div className="shimmer h-3 w-1/3 rounded" />
+              <div className="shimmer h-3 w-3/4 rounded" />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

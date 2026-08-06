@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { AtelierAvecOffres, Vendor } from '@/types/database'
+import type { AtelierAvecOffres, Vendor, VendorImage } from '@/types/database'
 
 export type AtelierComplet = Pick<
   Vendor,
@@ -21,16 +21,26 @@ export type AtelierComplet = Pick<
   | 'whatsapp_number'
   | 'phone'
   | 'instagram_handle'
+  | 'price_from_cfa'
+  | 'catalog_url'
 > & {
+  vendor_images: Pick<VendorImage, 'storage_path' | 'alt_text' | 'sort_order'>[]
   offers: AtelierAvecOffres['offers']
 }
 
 /**
- * Un atelier et tout son catalogue publié.
+ * Un atelier et tout ce qu'il expose.
  *
- * Contrairement à l'accueil, on ne force pas la jointure : un créateur dont
- * toutes les offres sont en brouillon doit rester consultable — sa fiche a
- * une valeur en elle-même, c'est la première décision structurante du projet.
+ * En phase 1, c'est la fiche principale du site — l'unité que le visiteur
+ * découvre, partage et contacte.
+ *
+ * Ses offres sont chargées quand même : si le créateur n'a pas indiqué de
+ * catalogue externe mais a des pièces saisies, on les montre. C'est le choix
+ * « les deux, au créateur de décider ».
+ *
+ * On ne force pas la jointure sur les offres : un atelier sans aucune pièce
+ * reste consultable. Sa fiche a une valeur en elle-même — c'est la première
+ * décision structurante du projet.
  */
 export function useAtelier(slug: string | undefined) {
   return useQuery({
@@ -43,7 +53,8 @@ export function useAtelier(slug: string | undefined) {
           `
           id, slug, display_name, vendor_type, contact_name, tagline, bio, story,
           city, neighborhood, logo_url, cover_url, accepts_custom, is_verified,
-          whatsapp_number, phone, instagram_handle,
+          whatsapp_number, phone, instagram_handle, price_from_cfa, catalog_url,
+          vendor_images ( storage_path, alt_text, sort_order ),
           offers (
             id, slug, title, price_mode, price_cfa, unit,
             is_made_to_order, lead_time_days, is_customizable, is_available,
@@ -62,6 +73,7 @@ export function useAtelier(slug: string | undefined) {
       if (!data) return null
 
       const atelier = data as unknown as AtelierComplet
+      atelier.vendor_images?.sort((a, b) => a.sort_order - b.sort_order)
       for (const offre of atelier.offers ?? []) {
         offre.offer_images?.sort((a, b) => a.sort_order - b.sort_order)
       }

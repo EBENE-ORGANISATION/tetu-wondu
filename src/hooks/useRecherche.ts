@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { sansAccents } from '@/lib/texte'
 import type { OfferCard } from '@/types/database'
 
 export type Tri = 'recent' | 'prix_croissant' | 'prix_decroissant'
@@ -31,23 +32,6 @@ export function compterFiltres(f: Filtres): number {
   if (f.personnalisable) n++
   if (f.prixMax !== null) n++
   return n
-}
-
-/**
- * Retire les accents d'un texte : « Kpalimé » devient « Kpalime ».
- *
- * Indispensable, et à garder synchronisé avec la base. La migration 0009 a
- * désaccentué la colonne de recherche côté serveur : si on n'en fait pas
- * autant sur le terme tapé, « karité » irait chercher « karité » dans un index
- * qui ne contient plus que « karite ». Les deux vont ensemble.
- *
- * NFD sépare la lettre de son accent ; la plage U+0300 a U+036F supprime les
- * accents ainsi isolés. Écrite en codes d'échappement plutôt qu'en caractères
- * littéraux : des signes invisibles dans un fichier source finissent toujours
- * par être mangés par un éditeur ou un copier-coller.
- */
-function sansAccents(texte: string): string {
-  return texte.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
 /**

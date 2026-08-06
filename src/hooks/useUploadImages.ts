@@ -20,8 +20,21 @@ export interface ResultatEnvoi {
  * fragile, quatre envois simultanés se gênent et échouent tous. Une par une,
  * si la troisième échoue, les deux premières sont déjà enregistrées.
  */
-export function useUploadImages() {
+/**
+ * Où ranger les photos, selon ce qu'elles montrent.
+ *
+ * Deux buckets distincts : y mélanger photos d'objets et photos d'ateliers
+ * rendrait le nom « offer-images » mensonger, et on vit longtemps avec ce
+ * genre de confusion.
+ */
+const CIBLES = {
+  offre: { bucket: 'offer-images', table: 'offer_images', cle: 'offer_id' },
+  atelier: { bucket: 'atelier-images', table: 'vendor_images', cle: 'vendor_id' },
+} as const
+
+export function useUploadImages(quoi: keyof typeof CIBLES = 'offre') {
   const client = useQueryClient()
+  const cible = CIBLES[quoi]
 
   return useMutation({
     mutationFn: async ({
@@ -30,6 +43,7 @@ export function useUploadImages() {
       departSortOrder = 0,
       onProgres,
     }: {
+      /** L'identifiant de l'offre ou de l'atelier, selon la cible. */
       offerId: string
       fichiers: File[]
       departSortOrder?: number
@@ -43,22 +57,22 @@ export function useUploadImages() {
           const chemin = `${offerId}/${crypto.randomUUID()}.${photo.extension}`
 
           const { error: erreurEnvoi } = await supabase.storage
-            .from('offer-images')
+            .from(cible.bucket)
             .upload(chemin, photo.blob, {
               contentType: photo.blob.type,
               cacheControl: '31536000', // un an : le nom du fichier est unique
             })
           if (erreurEnvoi) throw erreurEnvoi
 
-          const { error: erreurLigne } = await supabase.from('offer_images').insert({
-            offer_id: offerId,
+          const { error: erreurLigne } = await supabase.from(cible.table).insert({
+            [cible.cle]: offerId,
             storage_path: chemin,
             sort_order: departSortOrder + index,
           })
           if (erreurLigne) {
             // La ligne n'a pas pu être créée : on retire le fichier orphelin
             // plutôt que de laisser grossir le bucket pour rien.
-            await supabase.storage.from('offer-images').remove([chemin])
+            await supabase.storage.from(cible.bucket).remove([chemin])
             throw erreurLigne
           }
 

@@ -20,6 +20,8 @@ export type EventType =
   | 'instagram_click'
   | 'search'
   | 'category_view'
+  /** Départ vers un catalogue externe : le visiteur sort de nos statistiques. */
+  | 'catalog_click'
 
 export interface Vendor {
   id: string
@@ -40,6 +42,46 @@ export interface Vendor {
   accepts_custom: boolean
   is_verified: boolean
   is_active: boolean
+  /** « À partir de X FCFA ». NULL si le créateur préfère ne pas en donner. */
+  price_from_cfa: number | null
+  /** Instagram, catalogue WhatsApp Business, dossier de photos… NULL si aucun. */
+  catalog_url: string | null
+}
+
+export interface VendorImage {
+  id: string
+  vendor_id: string
+  storage_path: string
+  alt_text: string | null
+  sort_order: number
+}
+
+/**
+ * Un atelier tel qu'affiché en phase 1 : c'est lui l'unité, pas l'objet.
+ *
+ * `offers` ne sert qu'à compter ses pièces déjà saisies, pour proposer
+ * « Voir ses N pièces » quand il n'a pas de catalogue externe.
+ */
+export type AtelierCarte = Pick<
+  Vendor,
+  | 'id'
+  | 'slug'
+  | 'display_name'
+  | 'vendor_type'
+  | 'contact_name'
+  | 'tagline'
+  | 'city'
+  | 'neighborhood'
+  | 'logo_url'
+  | 'cover_url'
+  | 'is_verified'
+  | 'whatsapp_number'
+  | 'price_from_cfa'
+  | 'catalog_url'
+  | 'accepts_custom'
+> & {
+  vendor_images: Pick<VendorImage, 'storage_path' | 'alt_text' | 'sort_order'>[]
+  offers: { count: number }[]
 }
 
 export interface Offer {

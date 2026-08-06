@@ -85,6 +85,7 @@ export default function Recherche() {
             <BarreRecherche
               valeur={filtres.q}
               onChange={(q) => appliquer({ ...filtres, q })}
+              invite="Chercher un objet, un créateur…"
               autoFocus
             />
           </div>

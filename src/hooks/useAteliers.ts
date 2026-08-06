@@ -1,56 +1,56 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { AtelierAvecOffres } from '@/types/database'
+import type { AtelierCarte } from '@/types/database'
+
+const CHAMPS = `
+  id, slug, display_name, vendor_type, contact_name, tagline, city, neighborhood,
+  logo_url, cover_url, is_verified, whatsapp_number, price_from_cfa, catalog_url,
+  accepts_custom,
+  vendor_images ( storage_path, alt_text, sort_order ),
+  offers ( count )
+`
 
 /**
- * Les ateliers actifs et leurs offres publiées, pour l'accueil.
+ * Les ateliers actifs, pour l'accueil.
  *
- * Une seule requête, pas une par atelier : sur 3G, huit allers-retours au lieu
- * d'un se voient à l'œil nu.
+ * C'est l'écran d'entrée de la phase 1 : on découvre une marque, pas un objet.
  *
- * Trois filtres appliqués côté base, jamais côté navigateur :
- *  - créateur actif,
- *  - offre publiée (les brouillons ne doivent pas fuiter),
- *  - offre de type « produit » — les services existent dans le schéma mais ne
- *    s'ouvriront que plus tard.
+ * Le décompte des offres n'est là que pour proposer « Voir ses N pièces » aux
+ * créateurs qui en ont saisi et qui n'ont pas de catalogue externe. Il est
+ * limité aux offres publiées : compter des brouillons promettrait au visiteur
+ * des pièces qu'il ne verrait pas.
  */
 export function useAteliers() {
   return useQuery({
     queryKey: ['ateliers'],
-    queryFn: async (): Promise<AtelierAvecOffres[]> => {
+    queryFn: async (): Promise<AtelierCarte[]> => {
       const { data, error } = await supabase
         .from('vendors')
-        .select(
-          `
-          id, slug, display_name, vendor_type, contact_name, tagline, city, neighborhood,
-          logo_url, is_verified, whatsapp_number,
-          offers!inner (
-            id, slug, title, price_mode, price_cfa, unit,
-            is_made_to_order, lead_time_days, is_customizable, is_available,
-            vendor_display_name,
-            offer_images ( storage_path, alt_text, sort_order )
-          )
-        `,
-        )
+        .select(CHAMPS)
         .eq('is_active', true)
         .eq('offers.status', 'published')
         .eq('offers.offer_type', 'product')
+        .order('is_verified', { ascending: false })
         .order('display_name')
 
       if (error) throw error
 
-      const ateliers = (data ?? []) as unknown as AtelierAvecOffres[]
-
-      // Les photos sont triées ici plutôt que dans la requête : PostgREST ne
-      // sait pas ordonner une relation imbriquée à deux niveaux, et trier
-      // quelques éléments en mémoire ne coûte rien.
-      for (const atelier of ateliers) {
-        for (const offre of atelier.offers) {
-          offre.offer_images?.sort((a, b) => a.sort_order - b.sort_order)
-        }
+      const ateliers = (data ?? []) as unknown as AtelierCarte[]
+      for (const a of ateliers) {
+        a.vendor_images?.sort((x, y) => x.sort_order - y.sort_order)
       }
-
       return ateliers
     },
   })
+}
+
+/**
+ * Le nombre de pièces publiées, ou 0.
+ *
+ * PostgREST renvoie un décompte agrégé sous forme de tableau à un élément :
+ * `offers: [{ count: 3 }]`. Cette fonction évite d'écrire cette bizarrerie à
+ * chaque endroit où l'on veut simplement un nombre.
+ */
+export function nombreOffres(a: Pick<AtelierCarte, 'offers'>): number {
+  return a.offers?.[0]?.count ?? 0
 }
