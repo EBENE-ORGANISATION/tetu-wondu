@@ -144,11 +144,18 @@ export default function Rejoindre() {
 
       <form onSubmit={(e) => void envoyer(e)} className="mt-8 space-y-8">
         <Section titre="Votre atelier">
-          <Champ label="Nom de l'atelier ou de la marque" obligatoire erreur={erreurs.display_name}>
+          {/* Pas de nom d'atelier réel en exemple : ce champ est vu par des
+              concurrents directs, et citer l'un d'eux le met en avant
+              gratuitement — ou l'embarrasse. */}
+          <Champ
+            label="Nom de l'atelier ou de la marque"
+            obligatoire
+            erreur={erreurs.display_name}
+            aide="Le nom sous lequel vos clients vous connaissent."
+          >
             <Saisie
               value={c.display_name}
               onChange={(e) => modifier({ display_name: e.target.value })}
-              placeholder="Awua"
             />
           </Champ>
 
