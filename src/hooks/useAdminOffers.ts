@@ -24,6 +24,22 @@ export function useAdminOffres(statut: OfferStatus | 'tous') {
   })
 }
 
+/** Les offres d'un atelier — pour dire à l'écran ce qu'une suppression emporte. */
+export function useOffresDeLAtelier(vendorId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'offres-atelier', vendorId],
+    enabled: Boolean(vendorId) && vendorId !== 'nouveau',
+    queryFn: async (): Promise<{ id: string; title: string }[]> => {
+      const { data, error } = await supabase
+        .from('offers')
+        .select('id, title')
+        .eq('vendor_id', vendorId!)
+      if (error) throw error
+      return (data ?? []) as { id: string; title: string }[]
+    },
+  })
+}
+
 export function useOffreAdmin(id: string | undefined) {
   return useQuery({
     queryKey: ['admin', 'offre', id],

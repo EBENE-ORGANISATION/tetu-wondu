@@ -4,6 +4,8 @@ import { useOffreAdmin, useEnregistrerOffre, useSupprimerImage } from '@/hooks/u
 import { useAdminVendors } from '@/hooks/useAdminVendors'
 import { useCategories } from '@/hooks/useCategories'
 import { useUploadImages } from '@/hooks/useUploadImages'
+import { useSupprimerOffre } from '@/hooks/useSuppression'
+import { ZoneDanger } from '@/components/admin/ZoneDanger'
 import { Champ, Saisie, Zone, Liste, Bascule, Section, Segments } from '@/components/admin/Champs'
 import { fabriquerSlug } from '@/lib/slug'
 import { poidsLisible } from '@/lib/compression'
@@ -43,6 +45,7 @@ export default function FormulaireOffre() {
   const enregistrer = useEnregistrerOffre()
   const envoyer = useUploadImages()
   const supprimerImage = useSupprimerImage()
+  const supprimerOffre = useSupprimerOffre()
 
   const [o, setO] = useState<Brouillon>(VIDE)
   const [erreurs, setErreurs] = useState<Record<string, string>>({})
@@ -416,6 +419,25 @@ export default function FormulaireOffre() {
           </>
         )}
       </Section>
+
+      {!creation && id && (
+        <ZoneDanger
+          titre="Supprimer cette offre"
+          nom={o.title ?? 'cette offre'}
+          enCours={supprimerOffre.isPending}
+          erreur={supprimerOffre.error ? (supprimerOffre.error as Error).message : null}
+          consequences={[
+            'La fiche de l’objet et toutes ses informations',
+            `${existante?.offer_images?.length ?? 0} photo${(existante?.offer_images?.length ?? 0) > 1 ? 's' : ''}`,
+          ]}
+          avertissement="Le créateur, lui, n’est pas touché. Pour retirer l’objet du site sans le perdre, revenez plus haut et passez son état sur « Archivée »."
+          onSupprimer={() => {
+            supprimerOffre.mutate(id, {
+              onSuccess: () => navigate('/admin/offres', { replace: true }),
+            })
+          }}
+        />
+      )}
     </main>
   )
 }

@@ -3,6 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useVendor, useEnregistrerVendor } from '@/hooks/useAdminVendors'
 import { usePhotosAtelier, useSupprimerPhotoAtelier } from '@/hooks/usePhotosAtelier'
 import { useUploadImages } from '@/hooks/useUploadImages'
+import { useSupprimerAtelier } from '@/hooks/useSuppression'
+import { useOffresDeLAtelier } from '@/hooks/useAdminOffers'
+import { ZoneDanger } from '@/components/admin/ZoneDanger'
 import { Champ, Saisie, Zone, Liste, Bascule, Section, Segments } from '@/components/admin/Champs'
 import { Photo } from '@/components/Photo'
 import { fabriquerSlug, nettoyerNumero, numeroValide } from '@/lib/slug'
@@ -47,6 +50,8 @@ export default function FormulaireCreateur() {
   const { data: photos } = usePhotosAtelier(id)
   const envoyer = useUploadImages('atelier')
   const supprimerPhoto = useSupprimerPhotoAtelier()
+  const supprimerAtelier = useSupprimerAtelier()
+  const { data: offres } = useOffresDeLAtelier(id)
 
   async function choisirPhotos(evt: React.ChangeEvent<HTMLInputElement>) {
     const fichiers = Array.from(evt.target.files ?? [])
@@ -420,6 +425,26 @@ export default function FormulaireCreateur() {
           </>
         )}
       </Section>
+
+      {!creation && id && (
+        <ZoneDanger
+          titre="Supprimer cet atelier"
+          nom={v.display_name ?? 'cet atelier'}
+          enCours={supprimerAtelier.isPending}
+          erreur={supprimerAtelier.error ? (supprimerAtelier.error as Error).message : null}
+          consequences={[
+            'La fiche de l’atelier et toutes ses informations',
+            `${photos?.length ?? 0} photo${(photos?.length ?? 0) > 1 ? 's' : ''} d’atelier`,
+            `${offres?.length ?? 0} offre${(offres?.length ?? 0) > 1 ? 's' : ''} et leurs photos`,
+          ]}
+          avertissement="Les vues et les clics déjà comptés sont conservés dans vos statistiques globales, mais ne seront plus rattachés à cet atelier. Pour simplement retirer la fiche du site, revenez plus haut et passez la visibilité sur « Masqué »."
+          onSupprimer={() => {
+            supprimerAtelier.mutate(id, {
+              onSuccess: () => navigate('/admin/createurs', { replace: true }),
+            })
+          }}
+        />
+      )}
     </main>
   )
 }
