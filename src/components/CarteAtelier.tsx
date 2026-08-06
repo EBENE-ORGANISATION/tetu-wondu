@@ -26,18 +26,25 @@ export function CarteAtelier({ atelier }: { atelier: AtelierCarte }) {
       to={`/createur/${atelier.slug}`}
       className="block overflow-hidden rounded-2xl border border-ligne bg-blanc"
     >
-      <div className="aspect-[5/3] w-full">
-        {photo || atelier.cover_url ? (
+      {/* Cadre carré : c'est le format dans lequel les créateurs photographient
+          déjà, parce que c'est celui d'Instagram. Un cadre paysage rognerait le
+          haut et le bas de chaque photo — et sur un t-shirt, c'est exactement
+          là que se trouve le motif.
+
+          Sans photo, on ne réserve pas la place : un grand carré hachuré
+          occuperait tout l'écran pour ne rien montrer. La carte se réduit à son
+          identité, et l'écart avec une fiche illustrée se voit — ce qui est la
+          meilleure incitation à envoyer des photos. */}
+      {photo && (
+        <div className="aspect-square w-full">
           <Photo
-            chemin={photo?.storage_path}
-            alt={photo?.alt_text ?? atelier.display_name}
+            chemin={photo.storage_path}
+            alt={photo.alt_text ?? atelier.display_name}
             source="atelier"
             className="size-full"
           />
-        ) : (
-          <div className="hachure size-full" />
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="flex items-start gap-3 p-3">
         <Monogramme nom={atelier.display_name} logoUrl={atelier.logo_url} />

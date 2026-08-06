@@ -49,8 +49,8 @@ export default function FicheCreateur() {
               key={p.storage_path}
               onClick={() => setPhotoOuverte(i)}
               aria-label={`Voir la photo ${i + 1} en grand`}
-              className={`shrink-0 snap-start overflow-hidden rounded-2xl ${
-                photos.length === 1 ? 'w-full aspect-[5/3]' : 'w-[78%] aspect-[4/3]'
+              className={`aspect-square shrink-0 snap-start overflow-hidden rounded-2xl ${
+                photos.length === 1 ? 'w-full' : 'w-[78%]'
               }`}
             >
               <Photo
@@ -65,7 +65,7 @@ export default function FicheCreateur() {
           ))}
         </div>
       ) : (
-        <div className="mx-4 flex aspect-[5/3] items-center justify-center rounded-2xl hachure">
+        <div className="hachure mx-4 flex aspect-square items-center justify-center rounded-2xl">
           <span className="font-action text-xs text-second">photos en attente</span>
         </div>
       )}

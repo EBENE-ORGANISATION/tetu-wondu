@@ -115,8 +115,11 @@ export default function Accueil() {
         />
       )}
 
+      {/* Une colonne sur téléphone : la photo carrée occupe la largeur, c'est
+          ce qui donne envie d'entrer. Deux colonnes dès qu'il y a la place,
+          sinon la liste devient interminable sur grand écran. */}
       {visibles.length > 0 && (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {visibles.map((a: AtelierCarte) => (
             <CarteAtelier key={a.id} atelier={a} />
           ))}
