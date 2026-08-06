@@ -113,12 +113,10 @@ function UnePiece({
         </button>
       </div>
 
-      <Champ label="Nom de la pièce">
-        <Saisie
-          value={piece.titre}
-          onChange={(e) => onModifier({ titre: e.target.value })}
-          placeholder="T-shirt sérigraphié « Lomé »"
-        />
+      {/* Pas d'exemple tiré d'un atelier réel : le formulaire est rempli par
+          des concurrents directs. */}
+      <Champ label="Nom de la pièce" aide="Tel que vous l'annonceriez à un client.">
+        <Saisie value={piece.titre} onChange={(e) => onModifier({ titre: e.target.value })} />
       </Champ>
 
       {categories.length > 0 && (

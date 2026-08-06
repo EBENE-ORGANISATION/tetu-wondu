@@ -179,7 +179,7 @@ export default function Rejoindre() {
 
           <Champ
             label="En une phrase"
-            aide="C'est souvent la seule chose qu'on lira. « Sérigraphie sur t-shirts, motifs de Lomé »."
+            aide="Ce que vous faites, en quelques mots. C'est souvent la seule chose qu'on lira."
           >
             <Saisie
               value={c.tagline ?? ''}
