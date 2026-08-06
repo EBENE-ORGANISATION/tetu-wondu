@@ -6,6 +6,7 @@ import { BarreContact } from '@/components/BarreContact'
 import { FeuilleWhatsApp } from '@/components/FeuilleWhatsApp'
 import { Monogramme } from '@/components/Monogramme'
 import { Photo } from '@/components/Photo'
+import { Visionneuse } from '@/components/Visionneuse'
 import { VignetteObjet } from '@/components/VignetteObjet'
 import { metier, montant } from '@/lib/format'
 import { messageAtelier } from '@/lib/whatsapp'
@@ -22,6 +23,7 @@ export default function FicheCreateur() {
   const { slug } = useParams<{ slug: string }>()
   const { data: atelier, isPending, isError, refetch } = useAtelier(slug)
   const [feuilleOuverte, setFeuilleOuverte] = useState(false)
+  const [photoOuverte, setPhotoOuverte] = useState<number | null>(null)
 
   useEffect(() => {
     if (atelier) trackEvent('vendor_view', { vendor_id: atelier.id })
@@ -43,8 +45,10 @@ export default function FicheCreateur() {
       {photos.length > 0 ? (
         <div className="scroll-x flex gap-2 px-4">
           {photos.map((p, i) => (
-            <div
+            <button
               key={p.storage_path}
+              onClick={() => setPhotoOuverte(i)}
+              aria-label={`Voir la photo ${i + 1} en grand`}
               className={`shrink-0 snap-start overflow-hidden rounded-2xl ${
                 photos.length === 1 ? 'w-full aspect-[5/3]' : 'w-[78%] aspect-[4/3]'
               }`}
@@ -57,7 +61,7 @@ export default function FicheCreateur() {
                 mention
                 className="size-full"
               />
-            </div>
+            </button>
           ))}
         </div>
       ) : (
@@ -187,6 +191,16 @@ export default function FicheCreateur() {
             })
           }
           onFermer={() => setFeuilleOuverte(false)}
+        />
+      )}
+
+      {photoOuverte !== null && (
+        <Visionneuse
+          photos={photos}
+          depart={photoOuverte}
+          source="atelier"
+          legende={atelier.display_name}
+          onFermer={() => setPhotoOuverte(null)}
         />
       )}
     </main>

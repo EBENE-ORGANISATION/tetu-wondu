@@ -8,6 +8,7 @@ import { Monogramme } from '@/components/Monogramme'
 import { VignetteObjet } from '@/components/VignetteObjet'
 import { montant, metier, prix as prixComplet } from '@/lib/format'
 import { Photo } from '@/components/Photo'
+import { Visionneuse } from '@/components/Visionneuse'
 import { FeuilleWhatsApp } from '@/components/FeuilleWhatsApp'
 import { messageOffre } from '@/lib/whatsapp'
 import { trackEvent } from '@/lib/analytics'
@@ -18,6 +19,7 @@ export default function FicheOffre() {
   const { data: offre, isPending, isError, refetch } = useOffre(slug)
   const { data: autres } = useAutresOffres(offre?.vendors.id, slug)
   const [feuilleOuverte, setFeuilleOuverte] = useState(false)
+  const [photoOuverte, setPhotoOuverte] = useState<number | null>(null)
 
   // Une vue par ouverture de fiche. La base refuse les doublons d'une même
   // session dans la même heure : inutile de s'en préoccuper ici.
@@ -43,13 +45,28 @@ export default function FicheOffre() {
       {/* Galerie — une seule photo pour l'instant, le carrousel viendra quand
           les fiches en auront plusieurs. */}
       <div className="relative mx-4 aspect-[4/3] overflow-hidden rounded-2xl">
-        <Photo
-          chemin={photo?.storage_path}
-          alt={photo?.alt_text ?? offre.title}
-          mention
-          eager
-          className="size-full"
-        />
+        {photo ? (
+          <button
+            onClick={() => setPhotoOuverte(0)}
+            aria-label="Voir la photo en grand"
+            className="size-full"
+          >
+            <Photo
+              chemin={photo.storage_path}
+              alt={photo.alt_text ?? offre.title}
+              eager
+              className="size-full"
+            />
+          </button>
+        ) : (
+          <Photo chemin={null} alt={offre.title} mention className="size-full" />
+        )}
+
+        {offre.offer_images.length > 1 && (
+          <span className="absolute right-3 bottom-3 rounded-full bg-encre/70 px-2.5 py-1 font-action text-xs font-semibold text-blanc">
+            {offre.offer_images.length} photos
+          </span>
+        )}
         {offre.is_customizable && (
           <span className="absolute top-3 left-3 rounded-full bg-perso px-3 py-1 font-action text-xs font-bold text-encre">
             Personnalisable
@@ -174,6 +191,15 @@ export default function FicheOffre() {
             })
           }
           onFermer={() => setFeuilleOuverte(false)}
+        />
+      )}
+
+      {photoOuverte !== null && (
+        <Visionneuse
+          photos={offre.offer_images}
+          depart={photoOuverte}
+          legende={offre.title}
+          onFermer={() => setPhotoOuverte(null)}
         />
       )}
     </main>
