@@ -71,9 +71,22 @@ delete from public.candidatures
 
 delete from public.events where session_id in ('SONDE-SECU', 'TEST-BRANCHEMENT');
 
-delete from storage.objects
- where bucket_id = 'atelier-images'
-   and name like 'candidatures/sonde/%';
+--   LE FICHIER DE TEST SE SUPPRIME À LA MAIN, PAS ICI.
+--
+--   Supabase refuse toute suppression directe dans storage.objects, et la
+--   refuse au point d'annuler le script entier :
+--     « Direct deletion from storage tables is not allowed. »
+--
+--   C'est une protection délibérée : effacer la ligne sans effacer le fichier
+--   laisserait un objet introuvable et facturé. La suppression doit passer par
+--   l'interface ou par l'API du stockage, qui font les deux.
+--
+--   À faire une fois, dans le tableau de bord :
+--     Storage → atelier-images → dossier « candidatures » → dossier « sonde »
+--     → tout sélectionner → Delete
+--
+--   Un seul fichier, déposé par la revue de sécurité. Aucune de vos photos
+--   n'est dans ce dossier.
 
 
 -- =============================================================================
@@ -87,6 +100,9 @@ delete from storage.objects
 --  2. Plus aucune trace de la revue :
 --       select count(*) from public.candidatures where whatsapp_number = '22890000777';  -- 0
 --       select count(*) from public.events where session_id like 'SONDE%';               -- 0
+--
+--     Le fichier de test, lui, se retire par Storage → atelier-images →
+--     candidatures → sonde (voir la section 3).
 --
 --  3. Les droits des deux fonctions de statistiques, qui ne doivent contenir
 --     ni public ni anon :
